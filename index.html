@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Taskia</title>
+    <script>
+      (() => {
+        const saved = localStorage.getItem('taskia-theme')
+        document.documentElement.dataset.theme =
+          saved === 'dark' || saved === 'light' ? saved : 'light'
+        const accent = localStorage.getItem('taskia-accent')
+        const allowed = ['blue', 'teal', 'green', 'amber', 'rose', 'violet']
+        document.documentElement.dataset.accent = allowed.includes(accent || '')
+          ? accent
+          : 'blue'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
