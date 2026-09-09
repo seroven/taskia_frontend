@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import {
+  ArrowLeft,
+  BookOpenText,
+  FloppyDisk,
+  PencilLine,
+  PencilSimple,
+} from '@phosphor-icons/react'
 import { api } from '../../api'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
 import { StudyChat } from '../../components/study/StudyChat'
 import { TextAreaField, TextField } from '../../components/ui/Field'
+import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
+import { missionStatusIcon } from '../../components/worlds/worldsIcons'
 import { errorMessage } from '../../lib/errors'
 import { parseDrawOps, type StudyBoardScene } from '../../lib/studyProtocol'
 import type { MissionContext, StudyMission } from '../../lib/worldsTypes'
@@ -78,7 +87,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
 
   async function onSend(
     message: string,
-    options: { includeBoard: boolean; allowAiDraw: boolean },
+    options: { includeBoard: boolean; allowAiDraw: boolean; fromVoice?: boolean },
   ) {
     setSending(true)
     setChatError(null)
@@ -100,6 +109,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
         message,
         boardAttach,
         options.allowAiDraw,
+        Boolean(options.fromVoice),
       )
       setContext(result.context)
       setPhase(result.reply.phase)
@@ -161,6 +171,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
     return (
       <div className="study-page">
         <div className="boot-screen study-boot">
+          <WorldsIconBadge icon={BookOpenText} size="lg" />
           <p className="brand">Misión</p>
           <p className="muted">Preparando la sesión…</p>
         </div>
@@ -173,13 +184,16 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
       <div className="study-page">
         <header className="study-header">
           <button type="button" className="ghost" onClick={onBack}>
-            ← Volver
+            <ArrowLeft size={18} weight="bold" />
+            Volver
           </button>
         </header>
         <p className="form-error banner">{error ?? 'No se pudo abrir la misión'}</p>
       </div>
     )
   }
+
+  const StatusIcon = missionStatusIcon(mission.status)
 
   const studyContext = context
     ? {
@@ -197,16 +211,23 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
     <div className="study-page">
       <header className="study-header">
         <button type="button" className="ghost" onClick={onBack}>
-          ← Materia
+          <ArrowLeft size={18} weight="bold" />
+          Materia
         </button>
         <div className="study-header-main">
           <h1>{mission.title}</h1>
           <div className="study-header-tags">
             <span className="course-tag">{mission.course_name}</span>
             <span className={`worlds-status worlds-status-${mission.status}`}>
+              <StatusIcon size={14} weight="fill" />
               {MISSION_STATUS_LABEL[mission.status] ?? mission.status}
             </span>
-            {mission.uses_board && <span className="worlds-pill">Pizarra</span>}
+            {mission.uses_board && (
+              <span className="worlds-pill">
+                <PencilLine size={14} weight="fill" />
+                Pizarra
+              </span>
+            )}
           </div>
         </div>
         <div className="study-mode-toggle" role="group" aria-label="Modo">
@@ -215,6 +236,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
             className={mode === 'study' ? 'active' : ''}
             onClick={() => setMode('study')}
           >
+            <BookOpenText size={16} weight="fill" />
             Estudiar
           </button>
           <button
@@ -222,6 +244,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
             className={mode === 'edit' ? 'active' : ''}
             onClick={() => setMode('edit')}
           >
+            <PencilSimple size={16} weight="bold" />
             Editar
           </button>
         </div>
@@ -254,7 +277,12 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
                 checked={editUsesBoard}
                 onChange={(e) => setEditUsesBoard(e.target.checked)}
               />
-              <span>Usar pizarra en esta misión</span>
+              <span>
+                <strong className="worlds-switch-label">
+                  <PencilLine size={18} weight="fill" />
+                  ¿Usar pizarra?
+                </strong>
+              </span>
             </label>
             <div className="modal-actions">
               <button type="button" className="ghost" onClick={() => setMode('study')}>
@@ -266,6 +294,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
                 disabled={savingEdit || !editTitle.trim()}
                 onClick={() => void onSaveEdit()}
               >
+                <FloppyDisk size={18} weight="fill" />
                 {savingEdit ? 'Guardando…' : 'Guardar'}
               </button>
             </div>

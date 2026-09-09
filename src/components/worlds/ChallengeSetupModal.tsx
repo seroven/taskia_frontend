@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Play, Trophy } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { WorldsIconBadge } from './WorldsIconBadge'
+import { challengeDifficultyIcon } from './worldsIcons'
 import { errorMessage } from '../../lib/errors'
 import {
   DIFFICULTY_LABEL,
@@ -60,6 +63,7 @@ export function ChallengeSetupModal({
           difficulty: d,
           label: DIFFICULTY_LABEL[d] ?? d,
           count: preset?.question_count ?? 0,
+          Icon: challengeDifficultyIcon(d),
         }
       }),
     [presets, scope],
@@ -116,12 +120,15 @@ export function ChallengeSetupModal({
             transition={{ duration: 0.22 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-panel-header">
-              <h2 id="challenge-setup-title">Nuevo desafío</h2>
-              <p className="lede">
-                {title ? `Alcance: ${title}. ` : ''}
-                Sin pistas del tutor: respondes y pasas a la siguiente.
-              </p>
+            <div className="modal-panel-header worlds-modal-header">
+              <WorldsIconBadge icon={Trophy} size="lg" tone="warn" />
+              <div>
+                <h2 id="challenge-setup-title">Nuevo desafío</h2>
+                <p className="lede">
+                  {title ? `Alcance: ${title}. ` : ''}
+                  Sin pistas del tutor: respondes y pasas a la siguiente.
+                </p>
+              </div>
             </div>
             <div className="modal-panel-body">
               {loading && <p className="muted">Cargando dificultades…</p>}
@@ -134,6 +141,7 @@ export function ChallengeSetupModal({
                     onClick={() => setDifficulty(opt.difficulty)}
                     disabled={starting || loading}
                   >
+                    <opt.Icon size={28} weight="duotone" />
                     <strong>{opt.label}</strong>
                     <span>{opt.count || '—'} preguntas</span>
                   </button>
@@ -150,6 +158,7 @@ export function ChallengeSetupModal({
                   disabled={starting || loading}
                   onClick={() => void onStart()}
                 >
+                  <Play size={18} weight="fill" />
                   {starting ? 'Generando preguntas…' : '¡Empezar!'}
                 </button>
               </div>

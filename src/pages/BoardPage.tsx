@@ -16,6 +16,7 @@ import type {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'framer-motion'
+import { GlobeHemisphereWest } from '@phosphor-icons/react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { BoardFilters } from '../components/BoardFilters'
@@ -339,6 +340,7 @@ export function BoardPage({
           <AccentPicker />
           <ThemeToggle />
           <button type="button" className="ghost" onClick={onOpenWorlds} disabled={loading}>
+            <GlobeHemisphereWest size={18} weight="duotone" />
             Mundos
           </button>
           <button

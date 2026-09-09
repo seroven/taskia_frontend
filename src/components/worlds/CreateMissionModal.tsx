@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { PencilLine, Plus, Rocket } from '@phosphor-icons/react'
 import { TextAreaField, TextField } from '../ui/Field'
+import { WorldsIconBadge } from './WorldsIconBadge'
 import { errorMessage } from '../../lib/errors'
 
 interface Props {
@@ -70,9 +72,14 @@ export function CreateMissionModal({ open, onClose, onCreate }: Props) {
             transition={{ duration: 0.22 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-panel-header">
-              <h2 id="create-mission-title">Nueva misión</h2>
-              <p className="lede">Un tema para estudiar con el tutor. Luego podrás desafiarlo.</p>
+            <div className="modal-panel-header worlds-modal-header">
+              <WorldsIconBadge icon={Rocket} size="lg" />
+              <div>
+                <h2 id="create-mission-title">Nueva misión</h2>
+                <p className="lede">
+                  Un tema para estudiar con el tutor. Luego podrás desafiarlo.
+                </p>
+              </div>
             </div>
             <form className="modal-panel-body" onSubmit={(e) => void onSubmit(e)}>
               <TextField
@@ -95,7 +102,10 @@ export function CreateMissionModal({ open, onClose, onCreate }: Props) {
                   onChange={(e) => setUsesBoard(e.target.checked)}
                 />
                 <span>
-                  <strong>¿Usar pizarra?</strong>
+                  <strong className="worlds-switch-label">
+                    <PencilLine size={18} weight="fill" />
+                    ¿Usar pizarra?
+                  </strong>
                   <span className="muted">
                     {' '}
                     Actívalo si el tema se practica dibujando (geometría, esquemas…).
@@ -108,6 +118,7 @@ export function CreateMissionModal({ open, onClose, onCreate }: Props) {
                   Cancelar
                 </button>
                 <button type="submit" className="primary" disabled={submitting}>
+                  <Plus size={18} weight="bold" />
                   {submitting ? 'Creando…' : 'Crear misión'}
                 </button>
               </div>

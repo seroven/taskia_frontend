@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft, GlobeHemisphereWest, Plus } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { CreateWorldModal } from '../../components/worlds/CreateWorldModal'
+import { WorldsEmptyState } from '../../components/worlds/WorldsEmptyState'
+import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
 import { AccentPicker } from '../../components/AccentPicker'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { errorMessage } from '../../lib/errors'
@@ -40,54 +44,77 @@ export function WorldsHome({ onBack, onOpenWorld }: Props) {
 
   return (
     <div className="worlds-shell">
-      <header className="topbar">
-        <div>
-          <button type="button" className="ghost worlds-back" onClick={onBack}>
-            ← Tablero
-          </button>
-          <p className="brand">Mundos</p>
-          <p className="welcome">Elige un mundo o crea uno nuevo para estudiar.</p>
-        </div>
-        <div className="topbar-actions">
+      <nav className="worlds-nav">
+        <button type="button" className="ghost worlds-back" onClick={onBack}>
+          <ArrowLeft size={18} weight="bold" />
+          Tablero
+        </button>
+        <div className="worlds-nav-tools">
           <AccentPicker />
           <ThemeToggle />
-          <button type="button" className="primary" onClick={() => setModalOpen(true)}>
-            Nuevo mundo
-          </button>
         </div>
-      </header>
+      </nav>
 
       {error && <p className="form-error banner">{error}</p>}
 
-      <div className="worlds-content">
-        {loading && <p className="muted">Cargando mundos…</p>}
-        {!loading && worlds.length === 0 && (
-          <div className="worlds-empty">
-            <h2>Crea tu primer Mundo</h2>
-            <p className="muted">
-              Un mundo agrupa materias y misiones. Después podrás estudiar temas y lanzar desafíos.
-            </p>
+      <div className="worlds-content worlds-stage">
+        <header className="worlds-hero">
+          <WorldsIconBadge icon={GlobeHemisphereWest} size="xl" />
+          <h1 className="worlds-hero-title">Mundos</h1>
+          <p className="worlds-hero-lead">
+            Elige un mundo para estudiar… o crea uno nuevo.
+          </p>
+          {worlds.length > 0 && (
             <button type="button" className="primary" onClick={() => setModalOpen(true)}>
-              Crear mundo
+              <Plus size={18} weight="bold" />
+              Nuevo mundo
             </button>
-          </div>
-        )}
-        <ul className="worlds-list">
-          {worlds.map((world) => (
-            <li key={world.id}>
-              <button
-                type="button"
-                className="worlds-row"
-                onClick={() => onOpenWorld(world.id)}
-              >
-                <span className="worlds-row-title">{world.title}</span>
-                {world.description && (
-                  <span className="worlds-row-desc muted">{world.description}</span>
-                )}
+          )}
+        </header>
+
+        {loading && <p className="muted worlds-center-text">Cargando mundos…</p>}
+
+        {!loading && worlds.length === 0 && (
+          <WorldsEmptyState
+            icon={GlobeHemisphereWest}
+            title="Tu primer Mundo"
+            description="Aquí viven tus materias y misiones. Empieza con uno y listo."
+            action={
+              <button type="button" className="primary" onClick={() => setModalOpen(true)}>
+                <Plus size={20} weight="bold" />
+                Crear mundo
               </button>
-            </li>
-          ))}
-        </ul>
+            }
+          />
+        )}
+
+        <AnimatePresence>
+          <ul className="worlds-tile-grid">
+            {worlds.map((world, index) => (
+              <motion.li
+                key={world.id}
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: Math.min(index * 0.05, 0.28), duration: 0.24 }}
+              >
+                <button
+                  type="button"
+                  className="worlds-tile worlds-tile--card"
+                  onClick={() => onOpenWorld(world.id)}
+                >
+                  <WorldsIconBadge icon={GlobeHemisphereWest} size="lg" />
+                  <span className="worlds-tile-body">
+                    <span className="worlds-tile-title">{world.title}</span>
+                    {world.description && (
+                      <span className="worlds-tile-desc muted">{world.description}</span>
+                    )}
+                    <span className="worlds-tile-hint">Entrar</span>
+                  </span>
+                </button>
+              </motion.li>
+            ))}
+          </ul>
+        </AnimatePresence>
       </div>
 
       <CreateWorldModal

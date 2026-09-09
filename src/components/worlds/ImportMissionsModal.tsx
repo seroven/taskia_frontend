@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { DownloadSimple, PencilLine } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { WorldsIconBadge } from './WorldsIconBadge'
 import { errorMessage } from '../../lib/errors'
 import type { ImportableMission } from '../../lib/worldsTypes'
 
@@ -84,11 +86,14 @@ export function ImportMissionsModal({
             transition={{ duration: 0.22 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-panel-header">
-              <h2 id="import-missions-title">Traer misiones</h2>
-              <p className="lede">
-                Copia temas de otros mundos (misma materia). El progreso empieza de cero.
-              </p>
+            <div className="modal-panel-header worlds-modal-header">
+              <WorldsIconBadge icon={DownloadSimple} size="lg" />
+              <div>
+                <h2 id="import-missions-title">Traer misiones</h2>
+                <p className="lede">
+                  Copia temas de otros mundos (misma materia). El progreso empieza de cero.
+                </p>
+              </div>
             </div>
             <div className="modal-panel-body">
               {loading && <p className="muted">Buscando misiones…</p>}
@@ -107,7 +112,12 @@ export function ImportMissionsModal({
                       <span>
                         <strong>{item.title}</strong>
                         <span className="muted"> · {item.world_title}</span>
-                        {item.uses_board && <span className="worlds-pill">Pizarra</span>}
+                        {item.uses_board && (
+                          <span className="worlds-pill">
+                            <PencilLine size={14} weight="fill" />
+                            Pizarra
+                          </span>
+                        )}
                       </span>
                     </label>
                   </li>
@@ -124,6 +134,7 @@ export function ImportMissionsModal({
                   disabled={submitting || items.length === 0}
                   onClick={() => void onSubmit()}
                 >
+                  <DownloadSimple size={18} weight="bold" />
                   {submitting ? 'Importando…' : 'Traer seleccionadas'}
                 </button>
               </div>

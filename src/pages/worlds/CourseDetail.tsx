@@ -1,8 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import {
+  ArrowLeft,
+  DownloadSimple,
+  PencilLine,
+  Plus,
+  Rocket,
+  Trophy,
+} from '@phosphor-icons/react'
 import { api } from '../../api'
 import { ChallengeSetupModal } from '../../components/worlds/ChallengeSetupModal'
 import { CreateMissionModal } from '../../components/worlds/CreateMissionModal'
 import { ImportMissionsModal } from '../../components/worlds/ImportMissionsModal'
+import { WorldsEmptyState } from '../../components/worlds/WorldsEmptyState'
+import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
+import {
+  challengeDifficultyIcon,
+  missionStatusIcon,
+} from '../../components/worlds/worldsIcons'
 import { AccentPicker } from '../../components/AccentPicker'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { errorMessage } from '../../lib/errors'
@@ -70,113 +85,154 @@ export function CourseDetail({
 
   return (
     <div className="worlds-shell">
-      <header className="topbar">
-        <div>
-          <button type="button" className="ghost worlds-back" onClick={onBack}>
-            ← Mundo
-          </button>
-          <p className="brand">{courseName}</p>
-          <p className="welcome">Misiones de esta materia</p>
-        </div>
-        <div className="topbar-actions">
+      <nav className="worlds-nav">
+        <button type="button" className="ghost worlds-back" onClick={onBack}>
+          <ArrowLeft size={18} weight="bold" />
+          Mundo
+        </button>
+        <div className="worlds-nav-tools">
           <AccentPicker />
           <ThemeToggle />
-          <button type="button" className="ghost" onClick={() => setImportOpen(true)}>
-            Traer misiones
-          </button>
-          <button type="button" className="ghost" onClick={() => setCreateOpen(true)}>
-            Nueva misión
-          </button>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => {
-              setMissionChallengeId(null)
-              setChallengeOpen(true)
-            }}
-            disabled={missions.length === 0}
-          >
-            Desafío de materia
-          </button>
         </div>
-      </header>
+      </nav>
 
       {error && <p className="form-error banner">{error}</p>}
 
-      <div className="worlds-content worlds-two-col">
-        <section>
-          <h2 className="worlds-section-title">Misiones</h2>
-          {loading && <p className="muted">Cargando…</p>}
+      <div className="worlds-content worlds-stage">
+        <header className="worlds-hero">
+          <WorldsIconBadge icon={Rocket} size="xl" />
+          <h1 className="worlds-hero-title">{courseName}</h1>
+          <p className="worlds-hero-lead">Elige una misión para estudiar.</p>
+          <div className="worlds-hero-actions">
+            <button type="button" className="primary" onClick={() => setCreateOpen(true)}>
+              <Plus size={18} weight="bold" />
+              Nueva misión
+            </button>
+            <button
+              type="button"
+              className="ghost worlds-cta-btn"
+              onClick={() => setImportOpen(true)}
+            >
+              <DownloadSimple size={18} weight="bold" />
+              Traer
+            </button>
+            <button
+              type="button"
+              className="ghost worlds-cta-btn"
+              onClick={() => {
+                setMissionChallengeId(null)
+                setChallengeOpen(true)
+              }}
+              disabled={missions.length === 0}
+            >
+              <Trophy size={18} weight="fill" />
+              Desafío
+            </button>
+          </div>
+        </header>
+
+        <section className="worlds-block">
+          {loading && <p className="muted worlds-center-text">Cargando…</p>}
           {!loading && missions.length === 0 && (
-            <div className="worlds-empty compact">
-              <p>Aún no hay misiones. Crea una o tráelas de otro mundo.</p>
-              <button type="button" className="primary" onClick={() => setCreateOpen(true)}>
-                Nueva misión
-              </button>
-            </div>
+            <WorldsEmptyState
+              compact
+              icon={Rocket}
+              title="Todavía no hay misiones"
+              description="Crea una o tráelas de otro mundo."
+              action={
+                <button type="button" className="primary" onClick={() => setCreateOpen(true)}>
+                  <Plus size={18} weight="bold" />
+                  Nueva misión
+                </button>
+              }
+            />
           )}
-          <ul className="worlds-list">
-            {missions.map((mission) => (
-              <li key={mission.id}>
-                <div className="worlds-mission-row">
-                  <button
-                    type="button"
-                    className="worlds-row worlds-row-mission"
-                    onClick={() => onStudyMission(mission.id)}
-                  >
-                    <span className="worlds-row-title">{mission.title}</span>
-                    <span className="worlds-row-tags">
-                      <span className={`worlds-status worlds-status-${mission.status}`}>
-                        {MISSION_STATUS_LABEL[mission.status] ?? mission.status}
+          <ul className="worlds-tile-stack">
+            {missions.map((mission, index) => {
+              const StatusIcon = missionStatusIcon(mission.status)
+              return (
+                <motion.li
+                  key={mission.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.2 }}
+                >
+                  <div className="worlds-mission-row">
+                    <button
+                      type="button"
+                      className="worlds-tile worlds-tile--card worlds-tile--mission"
+                      onClick={() => onStudyMission(mission.id)}
+                    >
+                      <WorldsIconBadge icon={Rocket} size="lg" />
+                      <span className="worlds-tile-body">
+                        <span className="worlds-tile-title">{mission.title}</span>
+                        <span className="worlds-row-tags">
+                          <span
+                            className={`worlds-status worlds-status-${mission.status}`}
+                          >
+                            <StatusIcon size={14} weight="fill" />
+                            {MISSION_STATUS_LABEL[mission.status] ?? mission.status}
+                          </span>
+                          {mission.uses_board && (
+                            <span className="worlds-pill">
+                              <PencilLine size={14} weight="fill" />
+                              Pizarra
+                            </span>
+                          )}
+                        </span>
+                        <span className="worlds-tile-hint">Estudiar</span>
                       </span>
-                      {mission.uses_board && (
-                        <span className="worlds-pill">Pizarra</span>
-                      )}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost worlds-mission-challenge"
-                    onClick={() => {
-                      setMissionChallengeId(mission.id)
-                      setChallengeOpen(true)
-                    }}
-                  >
-                    Desafío
-                  </button>
-                </div>
-              </li>
-            ))}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost worlds-mission-challenge worlds-cta-btn"
+                      aria-label={`Desafío: ${mission.title}`}
+                      onClick={() => {
+                        setMissionChallengeId(mission.id)
+                        setChallengeOpen(true)
+                      }}
+                    >
+                      <Trophy size={20} weight="fill" />
+                    </button>
+                  </div>
+                </motion.li>
+              )
+            })}
           </ul>
         </section>
 
-        <section>
-          <h2 className="worlds-section-title">Historial</h2>
-          {challenges.length === 0 && (
-            <p className="muted">Sin desafíos todavía en esta materia.</p>
-          )}
-          <ul className="worlds-history">
-            {challenges.map((ch) => (
-              <li key={ch.id}>
-                <button
-                  type="button"
-                  className="worlds-history-row"
-                  onClick={() => onOpenChallenge(ch.id)}
-                >
-                  <span>
-                    {SCOPE_LABEL[ch.scope] ?? ch.scope} ·{' '}
-                    {DIFFICULTY_LABEL[ch.difficulty] ?? ch.difficulty}
-                  </span>
-                  <span className="worlds-history-meta">
-                    {ch.status === 'completed' && ch.score != null
-                      ? `${ch.score}/100`
-                      : ch.status}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {challenges.length > 0 && (
+          <section className="worlds-block worlds-block--soft">
+            <p className="worlds-block-label">Tus desafíos</p>
+            <ul className="worlds-history">
+              {challenges.map((ch) => {
+                const DiffIcon = challengeDifficultyIcon(ch.difficulty)
+                return (
+                  <li key={ch.id}>
+                    <button
+                      type="button"
+                      className="worlds-history-row"
+                      onClick={() => onOpenChallenge(ch.id)}
+                    >
+                      <WorldsIconBadge icon={DiffIcon} size="sm" tone="warn" />
+                      <span className="worlds-history-text">
+                        <span>
+                          {SCOPE_LABEL[ch.scope] ?? ch.scope} ·{' '}
+                          {DIFFICULTY_LABEL[ch.difficulty] ?? ch.difficulty}
+                        </span>
+                        <span className="worlds-history-meta">
+                          {ch.status === 'completed' && ch.score != null
+                            ? `${ch.score}/100`
+                            : ch.status}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
       </div>
 
       <CreateMissionModal

@@ -8,6 +8,7 @@ import type {
   TaskStatus,
 } from './types'
 import type {
+  ChallengeAnswerPayload,
   ChallengeDetail,
   ChallengePreset,
   ImportableMission,
@@ -17,7 +18,6 @@ import type {
   StudyMission,
   StudyWorld,
   StudyWorldCourse,
-  SubmitAnswerResult,
 } from './lib/worldsTypes'
 import type { StudyBoardScene, StudyChatResponse, StudySession } from './lib/studyProtocol'
 
@@ -166,6 +166,7 @@ export const api = {
     user_message: string,
     board?: { description?: string; image_base64?: string | null },
     allowAiDraw = false,
+    fromVoice = false,
   ) {
     return request<StudyChatResponse>(`/study/${task_id}/chat`, {
       method: 'POST',
@@ -174,7 +175,18 @@ export const api = {
         board_description: board?.description ?? null,
         board_image_base64: board?.image_base64 ?? null,
         allow_ai_draw: allowAiDraw,
+        from_voice: fromVoice,
       }),
+    })
+  },
+  transcribeAudio(input: {
+    audio_base64: string
+    mime_type: string
+    duration_seconds: number
+  }) {
+    return request<{ text: string; truncated?: boolean }>('/study/transcribe', {
+      method: 'POST',
+      body: JSON.stringify(input),
     })
   },
 
@@ -285,6 +297,7 @@ export const api = {
     user_message: string,
     board?: { description?: string; image_base64?: string | null },
     allowAiDraw = false,
+    fromVoice = false,
   ) {
     return request<MissionChatResponse>(
       `/worlds/missions/${mission_id}/chat`,
@@ -295,6 +308,7 @@ export const api = {
           board_description: board?.description ?? null,
           board_image_base64: board?.image_base64 ?? null,
           allow_ai_draw: allowAiDraw,
+          from_voice: fromVoice,
         }),
       },
     )
@@ -336,19 +350,17 @@ export const api = {
   getChallenge(challenge_id: number) {
     return request<ChallengeDetail>(`/worlds/challenges/${challenge_id}`)
   },
-  submitChallengeAnswer(
-    question_id: number,
-    user_answer?: string | null,
-    board_json?: StudyBoardScene | null,
-  ) {
-    return request<SubmitAnswerResult>(
-      `/worlds/challenges/questions/${question_id}/answer`,
+  abandonChallenge(challenge_id: number) {
+    return request<{ ok: boolean }>(`/worlds/challenges/${challenge_id}`, {
+      method: 'DELETE',
+    }).then(() => undefined)
+  },
+  completeChallenge(challenge_id: number, answers: ChallengeAnswerPayload[]) {
+    return request<ChallengeDetail>(
+      `/worlds/challenges/${challenge_id}/complete`,
       {
         method: 'POST',
-        body: JSON.stringify({
-          user_answer: user_answer ?? null,
-          board_json: board_json ?? null,
-        }),
+        body: JSON.stringify({ answers }),
       },
     )
   },

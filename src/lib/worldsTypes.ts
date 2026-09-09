@@ -123,6 +123,10 @@ export interface ChallengeQuestionPublic {
   requires_board: boolean
   answered: boolean
   is_correct: boolean | null
+  /** Solo en desafíos completados */
+  user_answer?: string | null
+  /** Solo en desafíos completados */
+  correct_answer?: string | null
 }
 
 export interface ChallengeDetail {
@@ -131,11 +135,10 @@ export interface ChallengeDetail {
   current_index: number
 }
 
-export interface SubmitAnswerResult {
-  is_correct: boolean
-  completed: boolean
-  score: number | null
-  next_index: number | null
+export interface ChallengeAnswerPayload {
+  question_id: number
+  user_answer: string
+  board_json?: unknown
 }
 
 export const MISSION_STATUS_LABEL: Record<string, string> = {

@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { GlobeHemisphereWest, Plus } from '@phosphor-icons/react'
 import { TextAreaField, TextField } from '../ui/Field'
+import { WorldsIconBadge } from './WorldsIconBadge'
 import { errorMessage } from '../../lib/errors'
 
 interface Props {
@@ -60,9 +62,14 @@ export function CreateWorldModal({ open, onClose, onCreate }: Props) {
             transition={{ duration: 0.22 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-panel-header">
-              <h2 id="create-world-title">Nuevo mundo</h2>
-              <p className="lede">Un mundo agrupa las materias y misiones que quieres estudiar.</p>
+            <div className="modal-panel-header worlds-modal-header">
+              <WorldsIconBadge icon={GlobeHemisphereWest} size="lg" />
+              <div>
+                <h2 id="create-world-title">Nuevo mundo</h2>
+                <p className="lede">
+                  Un mundo agrupa las materias y misiones que quieres estudiar.
+                </p>
+              </div>
             </div>
             <form className="modal-panel-body" onSubmit={(e) => void onSubmit(e)}>
               <TextField
@@ -85,6 +92,7 @@ export function CreateWorldModal({ open, onClose, onCreate }: Props) {
                   Cancelar
                 </button>
                 <button type="submit" className="primary" disabled={submitting}>
+                  <Plus size={18} weight="bold" />
                   {submitting ? 'Creando…' : 'Crear mundo'}
                 </button>
               </div>

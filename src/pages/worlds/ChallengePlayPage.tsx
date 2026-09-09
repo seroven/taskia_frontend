@@ -1,34 +1,85 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  PaperPlaneTilt,
+  Trophy,
+  XCircle,
+} from '@phosphor-icons/react'
 import { api } from '../../api'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
+import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
+import { challengeDifficultyIcon } from '../../components/worlds/worldsIcons'
 import { errorMessage } from '../../lib/errors'
 import type { StudyBoardScene } from '../../lib/studyProtocol'
 import {
   DIFFICULTY_LABEL,
+  type ChallengeAnswerPayload,
   type ChallengeDetail,
   type ChallengeQuestionPublic,
 } from '../../lib/worldsTypes'
+import { AccentPicker } from '../../components/AccentPicker'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import { useTheme } from '../../theme'
-import { useToast } from '../../toast'
 
 interface Props {
   challengeId: number
   onBack: () => void
 }
 
+function formatUserAnswer(q: ChallengeQuestionPublic, raw: string | null | undefined) {
+  const text = (raw ?? q.user_answer ?? '').trim()
+  if (!text) return '—'
+  if (q.kind === 'multiple_choice' && q.options && /^[A-D]$/i.test(text)) {
+    const idx = text.toUpperCase().charCodeAt(0) - 65
+    const opt = q.options[idx]
+    return opt ? `${text.toUpperCase()}. ${opt}` : text.toUpperCase()
+  }
+  return text
+}
+
+function isBoardQuestion(q: ChallengeQuestionPublic) {
+  return q.kind === 'board_prompt' || q.requires_board
+}
+
+function formatSaidAnswer(q: ChallengeQuestionPublic) {
+  if (isBoardQuestion(q)) {
+    const extra = (q.user_answer ?? '').trim()
+    if (!extra || extra.startsWith('{') || extra.startsWith('[')) return 'Lo dibujaste'
+    return `Lo dibujaste. ${extra}`
+  }
+  return formatUserAnswer(q, q.user_answer)
+}
+
+function formatExpectedAnswer(q: ChallengeQuestionPublic) {
+  if (isBoardQuestion(q)) {
+    const expected = (q.correct_answer ?? '').trim()
+    return expected || '—'
+  }
+  return formatUserAnswer(q, q.correct_answer)
+}
+
+function reviewCheer(correct: number, total: number) {
+  if (total === 0) return '¡Listo!'
+  const ratio = correct / total
+  if (ratio >= 0.8) return '¡Genial!'
+  if (ratio >= 0.5) return '¡Buen intento!'
+  return '¡Seguí practicando!'
+}
+
 export function ChallengePlayPage({ challengeId, onBack }: Props) {
   const { theme } = useTheme()
-  const { showToast } = useToast()
   const [detail, setDetail] = useState<ChallengeDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [answer, setAnswer] = useState('')
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<'ok' | 'bad' | null>(null)
-  const [finishedScore, setFinishedScore] = useState<number | null>(null)
+  const [cursor, setCursor] = useState(0)
+  const [pending, setPending] = useState<Record<number, ChallengeAnswerPayload>>({})
   const [showResult, setShowResult] = useState(false)
   const boardRef = useRef<ExcalidrawBoardHandle>(null)
+  const abandonedRef = useRef(false)
   const [boardScene] = useState<StudyBoardScene>({
     type: 'excalidraw',
     version: 2,
@@ -38,6 +89,21 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     files: {},
   })
 
+  const isCompleted =
+    showResult || detail?.challenge.status === 'completed'
+
+  async function leaveChallenge() {
+    if (!abandonedRef.current && !isCompleted) {
+      abandonedRef.current = true
+      try {
+        await api.abandonChallenge(challengeId)
+      } catch {
+        // ignore
+      }
+    }
+    onBack()
+  }
+
   useEffect(() => {
     void (async () => {
       setLoading(true)
@@ -45,9 +111,11 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
       try {
         const next = await api.getChallenge(challengeId)
         setDetail(next)
-        if (next.challenge.status === 'completed' && next.challenge.score != null) {
-          setFinishedScore(next.challenge.score)
+        if (next.challenge.status === 'completed') {
           setShowResult(true)
+        } else {
+          setCursor(0)
+          setPending({})
         }
       } catch (err) {
         setError(errorMessage(err))
@@ -57,27 +125,38 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     })()
   }, [challengeId])
 
-  const current: ChallengeQuestionPublic | null = useMemo(() => {
-    if (!detail) return null
-    const unanswered = detail.questions.find((q) => !q.answered)
-    return unanswered ?? null
-  }, [detail])
+  const questions = detail?.questions ?? []
+  const current = !showResult && questions.length > 0 ? questions[cursor] ?? null : null
+  const isLast = cursor >= questions.length - 1
 
-  const progressLabel = useMemo(() => {
-    if (!detail) return ''
-    const answered = detail.questions.filter((q) => q.answered).length
-    return `${Math.min(answered + (current ? 1 : 0), detail.questions.length)}/${detail.questions.length}`
-  }, [detail, current])
+  const progress = useMemo(() => {
+    const total = questions.length
+    const answeredLocal = Object.keys(pending).length
+    const currentIndex = showResult
+      ? total
+      : Math.min(answeredLocal + (current ? 1 : 0), total)
+    return {
+      answered: answeredLocal,
+      total,
+      currentIndex,
+      ratio: total > 0 ? currentIndex / total : 0,
+      label: total > 0 ? `${Math.min(cursor + 1, total)}/${total}` : '0/0',
+    }
+  }, [questions.length, pending, current, cursor, showResult])
 
   async function onSubmit() {
-    if (!current || submitting) return
+    if (!current || submitting || !detail) return
     setSubmitting(true)
-    setFeedback(null)
+    setError(null)
     try {
-      let userAnswer: string | null = answer.trim() || null
+      let userAnswer = answer.trim()
       let boardJson: StudyBoardScene | null = null
 
-      if (current.kind === 'multiple_choice') {
+      if (
+        current.kind === 'multiple_choice' &&
+        current.options &&
+        current.options.length >= 2
+      ) {
         if (!selectedOption) {
           setError('Elige una opción')
           setSubmitting(false)
@@ -93,22 +172,32 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
         return
       }
 
-      const result = await api.submitChallengeAnswer(current.id, userAnswer, boardJson)
-      setFeedback(result.is_correct ? 'ok' : 'bad')
-
-      const refreshed = await api.getChallenge(challengeId)
-      setDetail(refreshed)
+      const nextPending: Record<number, ChallengeAnswerPayload> = {
+        ...pending,
+        [current.id]: {
+          question_id: current.id,
+          user_answer: userAnswer,
+          board_json: boardJson,
+        },
+      }
+      setPending(nextPending)
       setAnswer('')
       setSelectedOption(null)
 
-      if (result.completed) {
-        setFinishedScore(result.score)
-        showToast({
-          tone: 'success',
-          title: 'Desafío terminado',
-          subtitle: `Puntaje: ${result.score ?? 0}/100`,
-        })
+      if (!isLast) {
+        setCursor((c) => c + 1)
+        return
       }
+
+      // Una sola petición al final: corrección + guardado
+      const payload = questions.map((q) => {
+        const saved = nextPending[q.id]
+        if (!saved) throw new Error('Faltan respuestas')
+        return saved
+      })
+      const completed = await api.completeChallenge(challengeId, payload)
+      setDetail(completed)
+      setShowResult(true)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -116,18 +205,11 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     }
   }
 
-  function clearFeedbackAndContinue() {
-    setFeedback(null)
-    setError(null)
-    if (finishedScore != null) {
-      setShowResult(true)
-    }
-  }
-
   if (loading) {
     return (
       <div className="worlds-shell">
         <div className="boot-screen study-boot">
+          <WorldsIconBadge icon={Trophy} size="lg" tone="warn" />
           <p className="brand">Desafío</p>
           <p className="muted">Cargando…</p>
         </div>
@@ -138,31 +220,136 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   if (error && !detail) {
     return (
       <div className="worlds-shell">
-        <header className="topbar">
-          <button type="button" className="ghost" onClick={onBack}>
-            ← Volver
+        <nav className="worlds-nav">
+          <button type="button" className="ghost worlds-back" onClick={() => void leaveChallenge()}>
+            <ArrowLeft size={18} weight="bold" />
+            Volver
           </button>
-        </header>
+        </nav>
         <p className="form-error banner">{error}</p>
       </div>
     )
   }
 
-  if (showResult || (detail && detail.challenge.status === 'completed' && !current && feedback == null)) {
-    const score = finishedScore ?? detail?.challenge.score ?? 0
-    const correct = detail?.questions.filter((q) => q.is_correct).length ?? 0
-    const total = detail?.questions.length ?? 0
+  if (showResult && detail) {
+    const score = detail.challenge.score ?? 0
+    const correct = detail.questions.filter((q) => q.is_correct).length
+    const total = detail.questions.length
+    const ratioPct = total > 0 ? Math.round((correct / total) * 100) : 0
+    const DiffIcon = challengeDifficultyIcon(detail.challenge.difficulty)
+    const cheer = reviewCheer(correct, total)
+    const showDots = total > 0 && total <= 24
+
+    function scrollToQuestion(id: number) {
+      document.getElementById(`review-q-${id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      })
+    }
+
     return (
-      <div className="worlds-shell">
-        <div className="worlds-challenge-result">
-          <p className="brand">¡Listo!</p>
-          <h1 className="worlds-score">{score}</h1>
-          <p className="muted">
-            de 100 · {correct}/{total} aciertos
-          </p>
-          <button type="button" className="primary" onClick={onBack}>
+      <div className="worlds-shell challenge-review">
+        <nav className="worlds-nav">
+          <button type="button" className="ghost worlds-back" onClick={onBack}>
+            <ArrowLeft size={18} weight="bold" />
             Volver
           </button>
+          <div className="worlds-nav-tools">
+            <AccentPicker />
+            <ThemeToggle />
+          </div>
+        </nav>
+
+        <div className="worlds-content worlds-stage challenge-review-layout">
+          <header className="challenge-review-summary">
+            <p className="challenge-review-cheer">{cheer}</p>
+            <div
+              className="challenge-review-scorecard"
+              aria-label={`${correct} de ${total} bien. ${score} puntos`}
+            >
+              <div
+                className="challenge-review-ring"
+                style={{ ['--pct' as string]: `${ratioPct}%` }}
+                aria-hidden
+              >
+                <div className="challenge-review-ring-inner">
+                  <strong>{correct}</strong>
+                  <span>de {total}</span>
+                </div>
+              </div>
+              <div className="challenge-review-score-text">
+                <p className="challenge-review-count-label">respuestas bien</p>
+                <p className="challenge-review-meta">
+                  <span>{score} pts</span>
+                  <span className="challenge-review-diff-pill">
+                    <DiffIcon size={14} weight="duotone" />
+                    {DIFFICULTY_LABEL[detail.challenge.difficulty] ??
+                      detail.challenge.difficulty}
+                  </span>
+                </p>
+                {showDots && (
+                  <div className="challenge-review-dots" role="list" aria-label="Resultado por pregunta">
+                    {detail.questions.map((q, index) => {
+                      const ok = Boolean(q.is_correct)
+                      return (
+                        <button
+                          key={q.id}
+                          type="button"
+                          role="listitem"
+                          className={`challenge-review-dot${ok ? ' is-ok' : ' is-bad'}`}
+                          aria-label={`Pregunta ${index + 1}: ${ok ? 'bien' : 'para practicar'}`}
+                          onClick={() => scrollToQuestion(q.id)}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <section className="challenge-review-answers-panel" aria-label="Preguntas">
+            <div className="challenge-review-scroll">
+              <ul className="worlds-review-list">
+                {detail.questions.map((q, index) => {
+                  const ok = Boolean(q.is_correct)
+                  return (
+                    <li
+                      key={q.id}
+                      id={`review-q-${q.id}`}
+                      className={`worlds-review-item${ok ? ' is-ok' : ' is-bad'}`}
+                    >
+                      <div className="worlds-review-head">
+                        <span
+                          className={`worlds-review-badge${ok ? ' is-ok' : ' is-bad'}`}
+                          aria-hidden
+                        >
+                          {ok ? (
+                            <CheckCircle size={20} weight="fill" />
+                          ) : (
+                            <XCircle size={20} weight="fill" />
+                          )}
+                        </span>
+                        <span className="worlds-review-num">{index + 1}</span>
+                        <p className="worlds-review-prompt">{q.prompt}</p>
+                      </div>
+                      {!ok && (
+                        <div className="worlds-review-miss">
+                          <p className="worlds-review-yours">
+                            Dijiste: <strong>{formatSaidAnswer(q)}</strong>
+                          </p>
+                          <p className="worlds-review-right">
+                            {isBoardQuestion(q) ? 'Se esperaba: ' : 'La respuesta era: '}
+                            <strong>{formatExpectedAnswer(q)}</strong>
+                          </p>
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          </section>
         </div>
       </div>
     )
@@ -171,105 +358,145 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   if (!detail || !current) {
     return (
       <div className="worlds-shell">
-        <header className="topbar">
-          <button type="button" className="ghost" onClick={onBack}>
-            ← Volver
+        <nav className="worlds-nav">
+          <button type="button" className="ghost worlds-back" onClick={() => void leaveChallenge()}>
+            <ArrowLeft size={18} weight="bold" />
+            Volver
           </button>
-        </header>
-        <p className="muted">No hay más preguntas.</p>
+        </nav>
+        <p className="muted worlds-center-text">No hay más preguntas.</p>
       </div>
     )
   }
 
+  const DiffIcon = challengeDifficultyIcon(detail.challenge.difficulty)
+
   return (
     <div className="worlds-shell challenge-play">
-      <header className="topbar">
-        <div>
-          <button type="button" className="ghost worlds-back" onClick={onBack}>
-            ← Salir
-          </button>
-          <p className="brand">Desafío</p>
-          <p className="welcome">
-            {DIFFICULTY_LABEL[detail.challenge.difficulty] ?? detail.challenge.difficulty} ·{' '}
-            {progressLabel}
-          </p>
+      <nav className="worlds-nav">
+        <button type="button" className="ghost worlds-back" onClick={() => void leaveChallenge()}>
+          <ArrowLeft size={18} weight="bold" />
+          Salir
+        </button>
+        <div className="worlds-nav-tools">
+          <AccentPicker />
+          <ThemeToggle />
         </div>
-      </header>
+      </nav>
 
-      <div className="worlds-content challenge-play-body">
-        <p className="challenge-prompt">{current.prompt}</p>
+      <div className="worlds-content worlds-stage">
+        <header className="worlds-hero worlds-hero--compact">
+          <WorldsIconBadge icon={DiffIcon} size="lg" tone="warn" />
+          <h1 className="worlds-hero-title">Desafío</h1>
+          <p className="worlds-hero-lead">
+            {DIFFICULTY_LABEL[detail.challenge.difficulty] ?? detail.challenge.difficulty} ·{' '}
+            {progress.label}
+          </p>
+        </header>
 
-        {current.kind === 'multiple_choice' && current.options && (
-          <div className="challenge-options" role="group">
-            {current.options.map((opt, i) => {
-              const letter = String.fromCharCode(65 + i)
-              const value = letter
+        <div className="challenge-play-body">
+          <div
+            className="worlds-progress"
+            role="progressbar"
+            aria-valuenow={progress.currentIndex}
+            aria-valuemin={0}
+            aria-valuemax={progress.total}
+            aria-label="Progreso del desafío"
+          >
+            <div className="worlds-progress-bar" style={{ width: `${progress.ratio * 100}%` }} />
+          </div>
+          <div className="worlds-progress-steps" aria-hidden>
+            {questions.map((q, i) => {
+              const done = i < cursor || pending[q.id] != null
+              const active = i === cursor
               return (
-                <button
-                  key={opt + i}
-                  type="button"
-                  className={`challenge-option${selectedOption === value ? ' is-selected' : ''}`}
-                  onClick={() => setSelectedOption(value)}
-                  disabled={submitting || feedback != null}
-                >
-                  <strong>{letter}</strong>
-                  <span>{opt.replace(/^[A-D][).:\-]\s*/i, '')}</span>
-                </button>
+                <span
+                  key={q.id}
+                  className={`worlds-progress-dot${done ? ' is-done' : ''}${active ? ' is-active' : ''}`}
+                />
               )
             })}
           </div>
-        )}
 
-        {(current.kind === 'short_text' || current.kind === 'fill_blank') && (
-          <input
-            className="field-control challenge-text-input"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Tu respuesta"
-            disabled={submitting || feedback != null}
-          />
-        )}
+          <p className="challenge-prompt">{current.prompt}</p>
 
-        {(current.requires_board || current.kind === 'board_prompt') && (
-          <div className="challenge-board">
-            <ExcalidrawBoard
-              key={`challenge-q-${current.id}-${theme}`}
-              ref={boardRef}
-              initialBoard={boardScene}
-              onSave={() => {}}
-              theme={theme}
-            />
+          {current.kind === 'multiple_choice' &&
+            current.options &&
+            current.options.length >= 2 && (
+              <div className="challenge-options worlds-choice" role="group">
+                {current.options.map((opt, i) => {
+                  const letter = String.fromCharCode(65 + i)
+                  const value = letter
+                  return (
+                    <button
+                      key={opt + i}
+                      type="button"
+                      className={`challenge-option worlds-choice-btn${selectedOption === value ? ' is-selected' : ''}`}
+                      onClick={() => setSelectedOption(value)}
+                      disabled={submitting}
+                    >
+                      <strong className="worlds-choice-letter">{letter}</strong>
+                      <span>{opt.replace(/^[A-D][).:\-]\s*/i, '')}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+          {(current.kind === 'short_text' ||
+            current.kind === 'fill_blank' ||
+            (current.kind === 'multiple_choice' &&
+              !(current.options && current.options.length >= 2))) && (
             <input
               className="field-control challenge-text-input"
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Opcional: escribe una nota breve"
-              disabled={submitting || feedback != null}
+              placeholder={
+                current.kind === 'multiple_choice'
+                  ? 'Escribe tu respuesta'
+                  : 'Tu respuesta'
+              }
+              disabled={submitting}
             />
-          </div>
-        )}
+          )}
 
-        {error && <p className="form-error">{error}</p>}
+          {(current.requires_board || current.kind === 'board_prompt') && (
+            <div className="challenge-board">
+              <ExcalidrawBoard
+                key={`challenge-q-${current.id}-${theme}`}
+                ref={boardRef}
+                initialBoard={boardScene}
+                onSave={() => {}}
+                theme={theme}
+              />
+              <input
+                className="field-control challenge-text-input"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="Opcional: escribe una nota breve"
+                disabled={submitting}
+              />
+            </div>
+          )}
 
-        {feedback == null ? (
+          {error && <p className="form-error">{error}</p>}
+
           <button
             type="button"
             className="primary"
             disabled={submitting}
             onClick={() => void onSubmit()}
           >
-            {submitting ? 'Corrigiendo…' : 'Enviar'}
+            <PaperPlaneTilt size={18} weight="fill" />
+            {submitting
+              ? isLast
+                ? 'Corrigiendo…'
+                : 'Guardando…'
+              : isLast
+                ? 'Terminar'
+                : 'Siguiente'}
           </button>
-        ) : (
-          <div className="challenge-feedback">
-            <p className={feedback === 'ok' ? 'challenge-ok' : 'challenge-bad'}>
-              {feedback === 'ok' ? '¡Bien!' : 'Siguiente'}
-            </p>
-            <button type="button" className="primary" onClick={clearFeedbackAndContinue}>
-              Continuar
-            </button>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )
