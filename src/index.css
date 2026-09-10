@@ -382,6 +382,28 @@ textarea {
   color: var(--accent);
 }
 
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-lockup img {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.brand-lockup-sm img {
+  width: 28px;
+  height: 28px;
+}
+
+.brand-lockup-md img {
+  width: 40px;
+  height: 40px;
+}
+
 .boot-screen,
 .auth-shell,
 .admin-shell,

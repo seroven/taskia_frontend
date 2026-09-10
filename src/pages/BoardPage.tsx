@@ -27,6 +27,7 @@ import { TaskDetailModal } from '../components/TaskDetailModal'
 import { TaskFormModal } from '../components/TaskFormModal'
 import { StudyBoardChoiceModal } from '../components/StudyBoardChoiceModal'
 import { AppearanceTools } from '../components/AppearanceTools'
+import { BrandLockup } from '../components/BrandLockup'
 import { ExpandIconButton } from '../components/ExpandIconButton'
 import { SessionActions } from '../components/SessionActions'
 import {
@@ -328,7 +329,7 @@ export function BoardPage({
     <div className="board-shell">
       <header className="topbar">
         <div>
-          <p className="brand">Taskia</p>
+          <BrandLockup />
           <p className="welcome">¡Hola, {user?.username}! 👋</p>
         </div>
         <div className="topbar-actions">

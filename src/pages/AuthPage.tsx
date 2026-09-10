@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../auth'
 import { AppearanceTools } from '../components/AppearanceTools'
+import { BrandLockup } from '../components/BrandLockup'
 import { TextField, PasswordField } from '../components/ui/Field'
 import { errorMessage } from '../lib/errors'
 import { useToast } from '../toast'
@@ -41,7 +42,7 @@ export function AuthPage() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
-        <p className="brand">Taskia</p>
+        <BrandLockup size="md" />
         <h1>¡Hola de nuevo!</h1>
         <p className="lede">
           Entra con el usuario que te dio un adulto. Tus tareas y mundos te esperan.
