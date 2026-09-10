@@ -109,7 +109,8 @@ export function ChallengeSetupModal({
       lead={
         <>
           {title ? `Alcance: ${title}. ` : ''}
-          Sin pistas del tutor: puedes volver a preguntas anteriores y cambiar tu respuesta.
+          La IA no charla durante el desafío. Si el tema usa pizarra, dibuja el
+          problema y tú resuelves ahí; al final revisa todas las respuestas.
         </>
       }
       icon={Trophy}

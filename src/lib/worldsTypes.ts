@@ -147,6 +147,7 @@ export interface ChallengeQuestionPublic {
   prompt: string
   options: string[] | null
   requires_board: boolean
+  prompt_draw_ops?: unknown[]
   answered: boolean
   is_correct: boolean | null
   /** Solo en desafíos completados */
@@ -165,6 +166,8 @@ export interface ChallengeAnswerPayload {
   question_id: number
   user_answer: string
   board_json?: unknown
+  board_description?: string
+  board_image_base64?: string
 }
 
 export const MISSION_STATUS_LABEL: Record<string, string> = {

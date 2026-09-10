@@ -14,7 +14,8 @@ import { WorldsHero } from '../../components/worlds/WorldsHero'
 import { WorldsNav } from '../../components/worlds/WorldsNav'
 import { challengeDifficultyIcon } from '../../components/worlds/worldsIcons'
 import { errorMessage } from '../../lib/errors'
-import type { StudyBoardScene } from '../../lib/studyProtocol'
+import { parseDrawOps, type StudyBoardScene } from '../../lib/studyProtocol'
+import { promptOpsToScene } from '../../lib/drawOpsToExcalidraw'
 import {
   DIFFICULTY_LABEL,
   type ChallengeAnswerPayload,
@@ -50,6 +51,32 @@ function asBoardScene(raw: unknown): StudyBoardScene {
     return raw as StudyBoardScene
   }
   return EMPTY_BOARD
+}
+
+function isBoardQuestion(q: Pick<ChallengeQuestionPublic, 'kind' | 'requires_board'>) {
+  return q.kind === 'board_prompt' || q.requires_board
+}
+
+function hasUserBoardWork(scene: StudyBoardScene | null | undefined) {
+  const elements = Array.isArray(scene?.elements) ? scene.elements : []
+  return elements.some((el) => {
+    if (!el || typeof el !== 'object') return false
+    const rec = el as Record<string, unknown>
+    if (rec.isDeleted) return false
+    const data = rec.customData
+    if (data && typeof data === 'object') {
+      const layer = String((data as { layer?: string }).layer ?? '')
+      const role = String((data as { role?: string }).role ?? '')
+      if (layer === 'ai' || role === 'prompt') return false
+    }
+    return true
+  })
+}
+
+function promptSceneFor(q: ChallengeQuestionPublic): StudyBoardScene {
+  const ops = parseDrawOps(q.prompt_draw_ops)
+  if (ops.length === 0) return EMPTY_BOARD
+  return promptOpsToScene(ops)
 }
 
 export function ChallengePlayPage({ challengeId, onBack }: Props) {
@@ -139,7 +166,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     )
   }
 
-  function captureCurrent(): ChallengeAnswerPayload | null {
+  async function captureCurrent(): Promise<ChallengeAnswerPayload | null> {
     if (!current) return null
     const isMc =
       current.kind === 'multiple_choice' &&
@@ -148,24 +175,28 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
       if (!selectedOption) return pending[current.id] ?? null
       return { question_id: current.id, user_answer: selectedOption }
     }
-    if (current.requires_board || current.kind === 'board_prompt') {
+    if (isBoardQuestion(current)) {
       const boardJson =
         boardRef.current?.getScene() ?? pending[current.id]?.board_json
+      const attach = await boardRef.current?.getBoardAttachment()
       const note = answer.trim()
-      if (!note && !boardJson) return pending[current.id] ?? null
+      const scene = asBoardScene(boardJson)
+      if (!hasUserBoardWork(scene) && !note) return pending[current.id] ?? null
       return {
         question_id: current.id,
         user_answer: note || '(respuesta en pizarra)',
         board_json: boardJson,
+        board_description: attach?.description,
+        board_image_base64: attach?.imageBase64 ?? undefined,
       }
     }
     if (!answer.trim()) return pending[current.id] ?? null
     return { question_id: current.id, user_answer: answer.trim() }
   }
 
-  function goTo(index: number) {
+  async function goTo(index: number) {
     if (!current || submitting || grading || index < 0 || index >= questions.length) return
-    const snap = captureCurrent()
+    const snap = await captureCurrent()
     const nextPending = snap ? { ...pending, [current.id]: snap } : pending
     if (snap) setPending(nextPending)
     applySaved(questions[index]!, nextPending[questions[index]!.id])
@@ -180,6 +211,8 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     try {
       let userAnswer = answer.trim()
       let boardJson: StudyBoardScene | null = null
+      let boardDescription: string | undefined
+      let boardImage: string | undefined
 
       if (
         current.kind === 'multiple_choice' &&
@@ -192,9 +225,17 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
           return
         }
         userAnswer = selectedOption
-      } else if (current.requires_board || current.kind === 'board_prompt') {
+      } else if (isBoardQuestion(current)) {
         boardJson = boardRef.current?.getScene() ?? null
-        if (!userAnswer) userAnswer = '(respuesta en pizarra)'
+        const attach = await boardRef.current?.getBoardAttachment()
+        if (!hasUserBoardWork(asBoardScene(boardJson)) && !userAnswer) {
+          setError('Dibuja tu respuesta en la pizarra')
+          setSubmitting(false)
+          return
+        }
+        userAnswer = userAnswer || '(respuesta en pizarra)'
+        boardDescription = attach?.description
+        boardImage = attach?.imageBase64 ?? undefined
       } else if (!userAnswer) {
         setError('Escribe tu respuesta')
         setSubmitting(false)
@@ -207,6 +248,8 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
           question_id: current.id,
           user_answer: userAnswer,
           board_json: boardJson,
+          board_description: boardDescription,
+          board_image_base64: boardImage,
         },
       }
       setPending(nextPending)
@@ -377,10 +420,16 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     isWorldChallenge &&
     Boolean(current.course_name) &&
     current.course_name !== prevCourseName
-  const currentBoard = asBoardScene(pending[current.id]?.board_json)
+  const currentBoard = isBoardQuestion(current)
+    ? pending[current.id]?.board_json
+      ? asBoardScene(pending[current.id]?.board_json)
+      : promptSceneFor(current)
+    : EMPTY_BOARD
 
-  return (
-    <div className="worlds-shell challenge-play">
+    return (
+    <div
+      className={`worlds-shell challenge-play${isBoardQuestion(current) ? ' challenge-play--board' : ''}`}
+    >
       <WorldsNav backLabel="Salir" onBack={() => void leaveChallenge()} />
 
       <div className="worlds-content worlds-stage">
@@ -403,6 +452,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
         />
 
         <div className="challenge-play-body">
+          <div className="challenge-play-top">
           <div
             className="worlds-progress"
             role="progressbar"
@@ -424,7 +474,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                   className={`worlds-progress-dot${done ? ' is-done' : ''}${active ? ' is-active' : ''}`}
                   aria-label={`Ir a la pregunta ${i + 1}`}
                   disabled={submitting || grading}
-                  onClick={() => goTo(i)}
+                  onClick={() => void goTo(i)}
                 />
               )
             })}
@@ -481,23 +531,14 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
             />
           )}
 
-          {(current.requires_board || current.kind === 'board_prompt') && (
-            <div className="challenge-board">
-              <ExcalidrawBoard
-                key={`challenge-q-${current.id}-${theme}`}
-                ref={boardRef}
-                initialBoard={currentBoard}
-                onSave={() => {}}
-                theme={theme}
-              />
-              <input
-                className="field-control challenge-text-input"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Opcional: escribe una nota breve"
-                disabled={submitting || grading}
-              />
-            </div>
+          {isBoardQuestion(current) && (
+            <input
+              className="field-control challenge-text-input"
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="Opcional: explicale a la IA lo que dibujaste"
+              disabled={submitting || grading}
+            />
           )}
 
           {error && <p className="form-error">{error}</p>}
@@ -507,7 +548,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
               type="button"
               className="ghost"
               disabled={submitting || grading || cursor === 0}
-              onClick={() => goTo(cursor - 1)}
+              onClick={() => void goTo(cursor - 1)}
             >
               <CaretLeft size={18} weight="bold" />
               Anterior
@@ -522,6 +563,19 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
               {isLast ? '¡Ya terminé!' : 'Siguiente'}
             </button>
           </div>
+          </div>
+
+          {isBoardQuestion(current) && (
+            <div className="challenge-board">
+              <ExcalidrawBoard
+                key={`challenge-q-${current.id}-${theme}`}
+                ref={boardRef}
+                initialBoard={currentBoard}
+                onSave={() => {}}
+                theme={theme}
+              />
+            </div>
+          )}
         </div>
         </motion.div>
       </div>

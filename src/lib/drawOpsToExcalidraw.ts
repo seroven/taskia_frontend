@@ -1,4 +1,4 @@
-import type { DrawOp } from './studyProtocol'
+import type { DrawOp, StudyBoardScene } from './studyProtocol'
 
 type ExcalidrawElement = Record<string, unknown>
 
@@ -272,6 +272,7 @@ export function centerAndScaleAiElements(
 export function applyDrawOpsToElements(
   _current: readonly ExcalidrawElement[],
   ops: DrawOp[],
+  options?: { lock?: boolean },
 ): ExcalidrawElement[] {
   // Pedido de producto: al dibujar la IA, borrar toda la pizarra primero.
   let created: ExcalidrawElement[] = []
@@ -323,5 +324,26 @@ export function applyDrawOpsToElements(
     }
   }
 
-  return centerAndScaleAiElements(created)
+  const centered = centerAndScaleAiElements(created)
+  if (!options?.lock) return centered
+  return centered.map((el) => ({
+    ...el,
+    locked: true,
+    customData: {
+      ...((el.customData as Record<string, unknown> | undefined) ?? {}),
+      layer: 'ai',
+      role: 'prompt',
+    },
+  }))
+}
+
+export function promptOpsToScene(ops: DrawOp[]): StudyBoardScene {
+  return {
+    type: 'excalidraw',
+    version: 2,
+    source: 'taskia',
+    elements: applyDrawOpsToElements([], ops, { lock: true }),
+    appState: { viewBackgroundColor: '#ffffff' },
+    files: {},
+  }
 }

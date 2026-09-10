@@ -25,7 +25,14 @@ export function formatSaidAnswer(
   const drew = voice === 'admin' ? 'Lo dibujó' : 'Lo dibujaste'
   if (isBoardQuestion(q)) {
     const extra = (q.user_answer ?? '').trim()
-    if (!extra || extra.startsWith('{') || extra.startsWith('[')) return drew
+    if (
+      !extra ||
+      extra.startsWith('{') ||
+      extra.startsWith('[') ||
+      extra === '(respuesta en pizarra)'
+    ) {
+      return drew
+    }
     return `${drew}. ${extra}`
   }
   return formatUserAnswer(q, q.user_answer)
