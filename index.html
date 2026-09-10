@@ -12,7 +12,7 @@
         document.documentElement.dataset.theme =
           saved === 'dark' || saved === 'light' ? saved : 'light'
         const accent = localStorage.getItem('taskia-accent')
-        const allowed = ['blue', 'teal', 'green', 'amber', 'rose', 'violet']
+        const allowed = ['blue', 'teal', 'green', 'amber', 'rose', 'pink', 'violet']
         document.documentElement.dataset.accent = allowed.includes(accent || '')
           ? accent
           : 'blue'

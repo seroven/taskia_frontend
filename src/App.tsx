@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AccentProvider } from './accent'
-import { BrandLockup } from './components/BrandLockup'
 import { AuthProvider, useAuth } from './auth'
 import { ThemeProvider } from './theme'
 import { ToastProvider } from './toast'
@@ -53,7 +52,7 @@ function AppRouter() {
   if (loading) {
     return (
       <div className="boot-screen">
-        <BrandLockup size="md" />
+        <p className="brand">Taskia</p>
         <p className="muted">Cargando…</p>
       </div>
     )

@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Plus, UserPlus } from '@phosphor-icons/react'
 import { api } from '../api'
 import { AppearanceTools } from '../components/AppearanceTools'
-import { BrandLockup } from '../components/BrandLockup'
 import { SessionActions } from '../components/SessionActions'
 import { PasswordField, TextField } from '../components/ui/Field'
 import { WorldsIconBadge } from '../components/worlds/WorldsIconBadge'
@@ -21,7 +20,7 @@ export function AdminPage() {
     <div className="worlds-shell admin-shell">
       <header className="topbar">
         <div>
-          <BrandLockup />
+          <p className="brand">Taskia</p>
           <p className="welcome">Panel de administrador</p>
         </div>
         <div className="topbar-actions">

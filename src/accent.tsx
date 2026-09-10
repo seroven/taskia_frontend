@@ -8,14 +8,22 @@ import {
   type ReactNode,
 } from 'react'
 
-export type AccentId = 'blue' | 'teal' | 'green' | 'amber' | 'rose' | 'violet'
+export type AccentId =
+  | 'blue'
+  | 'teal'
+  | 'green'
+  | 'amber'
+  | 'rose'
+  | 'pink'
+  | 'violet'
 
 export const ACCENTS: { id: AccentId; label: string; swatch: string }[] = [
   { id: 'blue', label: 'Azul', swatch: '#2563eb' },
   { id: 'teal', label: 'Turquesa', swatch: '#0d9488' },
   { id: 'green', label: 'Verde', swatch: '#16a34a' },
   { id: 'amber', label: 'Ámbar', swatch: '#d97706' },
-  { id: 'rose', label: 'Rosa', swatch: '#e11d48' },
+  { id: 'rose', label: 'Fresa', swatch: '#e11d48' },
+  { id: 'pink', label: 'Rosa', swatch: '#db2777' },
   { id: 'violet', label: 'Violeta', swatch: '#7c3aed' },
 ]
 
