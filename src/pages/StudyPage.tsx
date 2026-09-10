@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BookOpenText, PencilLine } from '@phosphor-icons/react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { api } from '../api'
+import { AppLoader } from '../components/AppLoader'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../components/study/ExcalidrawBoard'
 import { StudyBoardPane } from '../components/study/StudyBoardPane'
+import { StudyBoardToggle } from '../components/study/StudyBoardToggle'
 import { StudyChat } from '../components/study/StudyChat'
 import { TaskEditPanel } from '../components/study/TaskEditPanel'
 import { errorMessage } from '../lib/errors'
@@ -45,8 +47,9 @@ export function StudyPage({ taskId, onBack }: Props) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [chatError, setChatError] = useState<string | null>(null)
-  const [togglingBoard, setTogglingBoard] = useState(false)
+  const [togglingBoard, setTogglingBoard] = useState<'on' | 'off' | null>(null)
   const [boardOpen, setBoardOpen] = useState(false)
+  const [threadEl, setThreadEl] = useState<HTMLDivElement | null>(null)
   const boardRef = useRef<ExcalidrawBoardHandle>(null)
   const saveBoardRef = useRef<(scene: StudyBoardScene) => void>(() => {})
 
@@ -167,10 +170,13 @@ export function StudyPage({ taskId, onBack }: Props) {
     return updated
   }
 
-  async function onToggleBoard() {
+  async function onToggleBoard(next: boolean) {
     if (!task || togglingBoard) return
-    const next = !task.uses_board
-    setTogglingBoard(true)
+    if (next === task.uses_board) {
+      if (next) setBoardOpen(true)
+      return
+    }
+    setTogglingBoard(next ? 'on' : 'off')
     setChatError(null)
     try {
       await applyUsesBoard(next)
@@ -179,7 +185,7 @@ export function StudyPage({ taskId, onBack }: Props) {
         title: next ? '¡Pizarra lista!' : 'Ahora solo charlamos',
         subtitle: next
           ? 'Ya puedes dibujar junto al tutor.'
-          : 'Si quieres dibujar después, toca “Ver pizarra”.',
+          : 'Si quieres dibujar después, toca Pizarra.',
       })
     } catch (err) {
       showToast({
@@ -188,35 +194,14 @@ export function StudyPage({ taskId, onBack }: Props) {
         subtitle: errorMessage(err),
       })
     } finally {
-      setTogglingBoard(false)
-    }
-  }
-
-  async function onOpenMobileBoard() {
-    if (!task || togglingBoard) return
-    setTogglingBoard(true)
-    setChatError(null)
-    try {
-      if (!task.uses_board) await applyUsesBoard(true)
-      setBoardOpen(true)
-    } catch (err) {
-      showToast({
-        tone: 'error',
-        title: 'No se pudo abrir la pizarra',
-        subtitle: errorMessage(err),
-      })
-    } finally {
-      setTogglingBoard(false)
+      setTogglingBoard(null)
     }
   }
 
   if (loading) {
     return (
       <div className="study-page">
-        <div className="boot-screen study-boot">
-          <p className="brand">Modo estudio</p>
-          <p className="muted">Preparando la sesión…</p>
-        </div>
+        <AppLoader message="Preparando la sesión…" />
       </div>
     )
   }
@@ -237,8 +222,9 @@ export function StudyPage({ taskId, onBack }: Props) {
   return (
     <div className="study-page">
       <header className="study-header">
-        <button type="button" className="ghost" onClick={boardOpen ? () => setBoardOpen(false) : onBack}>
-          ← {boardOpen ? 'Chat' : 'Tablero'}
+        <button type="button" className="ghost" onClick={onBack}>
+          <ArrowLeft size={18} weight="bold" />
+          Tablero
         </button>
         <div className="study-header-main">
           <h1>{task.title}</h1>
@@ -247,7 +233,6 @@ export function StudyPage({ taskId, onBack }: Props) {
             <span className={`difficulty-tag difficulty-${task.difficulty_code}`}>
               {task.difficulty_name}
             </span>
-            {task.uses_board && <span className="worlds-pill">Pizarra</span>}
             {task.study_passed && (
               <span className="study-passed-tag">Listo</span>
             )}
@@ -255,35 +240,11 @@ export function StudyPage({ taskId, onBack }: Props) {
         </div>
         <div className="study-header-actions">
           {mode === 'study' && (
-            <>
-              <button
-                type="button"
-                className="ghost study-board-switch study-board-switch--mobile"
-                disabled={togglingBoard}
-                onClick={() => void onOpenMobileBoard()}
-              >
-                <PencilLine size={16} weight="fill" />
-                Ver pizarra
-              </button>
-              <button
-                type="button"
-                className="ghost study-board-switch study-board-switch--desktop"
-                disabled={togglingBoard}
-                onClick={() => void onToggleBoard()}
-              >
-                {task.uses_board ? (
-                  <>
-                    <BookOpenText size={16} weight="fill" />
-                    Quitar pizarra
-                  </>
-                ) : (
-                  <>
-                    <PencilLine size={16} weight="fill" />
-                    Ver pizarra
-                  </>
-                )}
-              </button>
-            </>
+            <StudyBoardToggle
+              usesBoard={task.uses_board}
+              disabled={Boolean(togglingBoard)}
+              onChange={(next) => void onToggleBoard(next)}
+            />
           )}
           <div className="study-mode-toggle" role="group" aria-label="Modo">
             <button
@@ -304,6 +265,7 @@ export function StudyPage({ taskId, onBack }: Props) {
         </div>
       </header>
 
+      <div className="study-body">
       <AnimatePresence mode="wait">
         {mode === 'edit' ? (
           <motion.div
@@ -353,9 +315,16 @@ export function StudyPage({ taskId, onBack }: Props) {
               error={chatError}
               onSend={onSend}
               boardControls={task.uses_board}
+              boardOpen={boardOpen}
+              onToggleBoardView={() => setBoardOpen((open) => !open)}
+              onThreadEl={setThreadEl}
             />
             {task.uses_board && (
-              <StudyBoardPane open={boardOpen} onClose={() => setBoardOpen(false)}>
+              <StudyBoardPane
+                open={boardOpen}
+                onClose={() => setBoardOpen(false)}
+                portalParent={threadEl}
+              >
                 {boardReady && (
                   <ExcalidrawBoard
                     key={`board-${task.id}-${theme}-${task.uses_board}`}
@@ -370,6 +339,17 @@ export function StudyPage({ taskId, onBack }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+      {togglingBoard && (
+        <div className="study-page-loader">
+          <AppLoader
+            message={
+              togglingBoard === 'on' ? 'Abriendo pizarra…' : 'Quitando pizarra…'
+            }
+            variant="section"
+          />
+        </div>
+      )}
+      </div>
     </div>
   )
 }

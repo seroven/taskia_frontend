@@ -15,6 +15,9 @@ interface Props {
   error: string | null
   /** Si false, oculta toggles de pizarra y habilita micrófono. Default true. */
   boardControls?: boolean
+  boardOpen?: boolean
+  onToggleBoardView?: () => void
+  onThreadEl?: (el: HTMLDivElement | null) => void
   onSend: (
     message: string,
     options: { includeBoard: boolean; allowAiDraw: boolean; fromVoice?: boolean },
@@ -89,6 +92,9 @@ export function StudyChat({
   sending,
   error,
   boardControls = true,
+  boardOpen = false,
+  onToggleBoardView,
+  onThreadEl,
   onSend,
 }: Props) {
   const voiceEnabled = !boardControls
@@ -308,6 +314,12 @@ export function StudyChat({
 
   return (
     <section className="study-chat">
+      <div
+        className="study-chat-stage"
+        ref={(el) => {
+          onThreadEl?.(el)
+        }}
+      >
       <div className="study-chat-meta">
         <span className="study-phase-pill">{phaseLabel(phase)}</span>
         {context?.topic_summary ? (
@@ -389,6 +401,7 @@ export function StudyChat({
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </div>
 
       {(error || (voiceError && voicePrompt !== 'confirm')) && (
@@ -510,12 +523,23 @@ export function StudyChat({
           rows={3}
           disabled={sending || voiceBusy}
         />
-        <button
-          type="submit"
-          className={`primary study-send-btn${sending ? ' is-loading' : ''}`}
-          disabled={sending || voiceBusy || !draft.trim()}
-          aria-busy={sending}
-        >
+        <div className="study-chat-send-row">
+          {boardControls && onToggleBoardView ? (
+            <button
+              type="button"
+              className="ghost study-open-board-btn"
+              disabled={sending || voiceBusy}
+              onClick={onToggleBoardView}
+            >
+              {boardOpen ? 'Chat' : 'Pizarra'}
+            </button>
+          ) : null}
+          <button
+            type="submit"
+            className={`primary study-send-btn${sending ? ' is-loading' : ''}`}
+            disabled={sending || voiceBusy || !draft.trim()}
+            aria-busy={sending}
+          >
           <AnimatePresence mode="wait" initial={false}>
             {sending ? (
               <motion.span
@@ -543,6 +567,7 @@ export function StudyChat({
             )}
           </AnimatePresence>
         </button>
+        </div>
       </form>
 
       <KidAskDialog

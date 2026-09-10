@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft } from '@phosphor-icons/react'
 
 function useMobileStudy(maxWidth = 900) {
   const [mobile, setMobile] = useState(() =>
@@ -24,10 +23,12 @@ export function StudyBoardPane({
   open,
   onClose,
   children,
+  portalParent,
 }: {
   open: boolean
   onClose: () => void
   children: ReactNode
+  portalParent?: HTMLElement | null
 }) {
   const mobile = useMobileStudy()
 
@@ -48,17 +49,13 @@ export function StudyBoardPane({
 
   const pane = (
     <div className={`study-board-pane${open ? ' is-open' : ''}`}>
-      <div className="study-board-mobile-bar">
-        <button type="button" className="ghost" onClick={onClose}>
-          <ArrowLeft size={18} weight="bold" />
-          Chat
-        </button>
-        <p className="study-board-mobile-title">Pizarra</p>
-      </div>
       <div className="study-board-canvas">{children}</div>
     </div>
   )
 
-  if (mobile) return createPortal(pane, document.body)
+  if (mobile) {
+    if (!portalParent) return null
+    return createPortal(pane, portalParent)
+  }
   return pane
 }
