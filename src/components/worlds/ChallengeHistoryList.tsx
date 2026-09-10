@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+import { Trophy } from '@phosphor-icons/react'
 import { AppLoader } from '../AppLoader'
+import { EmptyState } from '../EmptyState'
 import { WorldsIconBadge } from './WorldsIconBadge'
 import { challengeScopeIcon } from './worldsIcons'
 import {
@@ -39,7 +41,12 @@ export function ChallengeHistoryList({
       {loading ? (
         <AppLoader message="Cargando desafíos…" variant="section" />
       ) : items.length === 0 ? (
-        <p className="muted worlds-panel-empty">{emptyText}</p>
+        <EmptyState
+          compact
+          icon={Trophy}
+          title="Sin desafíos"
+          description={emptyText}
+        />
       ) : (
         <ul className="worlds-history">
           {items.map((ch) => {

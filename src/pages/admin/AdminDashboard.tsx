@@ -19,6 +19,7 @@ import type {
   AdminStudent,
 } from '../../lib/adminTypes'
 import { AppLoader } from '../../components/AppLoader'
+import { EmptyState } from '../../components/EmptyState'
 import { AdminDashboardCharts } from './AdminCharts'
 import { AdminStatCard } from './AdminStatCard'
 import { formatWhen } from './adminFormat'
@@ -204,6 +205,30 @@ export function AdminDashboard({ onOpenStudent, onCreateStudent }: Props) {
                 className="admin-search-field"
               />
             </div>
+            {roster.length === 0 ? (
+              <EmptyState
+                compact
+                icon={Student}
+                title={
+                  data.roster.length === 0
+                    ? 'Todavía no hay alumnos'
+                    : 'Ningún alumno coincide'
+                }
+                description={
+                  data.roster.length === 0
+                    ? 'Crea el primero para empezar.'
+                    : 'Prueba con otro usuario o correo.'
+                }
+                action={
+                  data.roster.length === 0 ? (
+                    <button type="button" className="primary" onClick={onCreateStudent}>
+                      <UserPlus size={18} weight="fill" />
+                      Nuevo alumno
+                    </button>
+                  ) : undefined
+                }
+              />
+            ) : (
             <div className="admin-table-wrap admin-table-wrap--flush">
               <table className="admin-table">
                 <thead>
@@ -219,16 +244,7 @@ export function AdminDashboard({ onOpenStudent, onCreateStudent }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {roster.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="admin-table-empty">
-                        {data.roster.length === 0
-                          ? 'Todavía no hay alumnos. Crea el primero para empezar.'
-                          : 'Ningún alumno coincide con la búsqueda.'}
-                      </td>
-                    </tr>
-                  ) : (
-                    roster.map((row) => (
+                    {roster.map((row) => (
                       <tr
                         key={row.id}
                         className="is-clickable"
@@ -271,11 +287,11 @@ export function AdminDashboard({ onOpenStudent, onCreateStudent }: Props) {
                         </td>
                         <td>{formatWhen(row.last_study_at)}</td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>
+            )}
           </section>
         </>
       )}

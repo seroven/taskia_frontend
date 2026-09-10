@@ -5,9 +5,11 @@ import {
   CaretRight,
   Flag,
   GlobeHemisphereWest,
+  Trophy,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { AppLoader } from '../../components/AppLoader'
+import { EmptyState } from '../../components/EmptyState'
 import { DateField } from '../../components/ui/DateField'
 import { SelectField } from '../../components/ui/SelectField'
 import { errorMessage } from '../../lib/errors'
@@ -193,11 +195,16 @@ export function AdminWorldsExplorer({
       {error && <p className="form-error">{error}</p>}
       {loading && <AppLoader message="Cargando mundos…" variant="section" />}
       {!loading && data && data.worlds.length === 0 && (
-        <p className="muted">
-          {hasFilters
-            ? 'Ningún mundo coincide con los filtros.'
-            : 'Aún no tiene mundos de estudio.'}
-        </p>
+        <EmptyState
+          compact
+          icon={GlobeHemisphereWest}
+          title={hasFilters ? 'Sin resultados' : 'Sin mundos'}
+          description={
+            hasFilters
+              ? 'Ningún mundo coincide con los filtros.'
+              : 'Aún no tiene mundos de estudio.'
+          }
+        />
       )}
       {!loading && data && data.worlds.length > 0 && (
         <div className="admin-worlds-explorer">
@@ -328,7 +335,14 @@ export function AdminWorldsExplorer({
           </nav>
 
           <section className="admin-panel admin-tree-detail">
-            {!resolved && <p className="muted">Elige un mundo, curso o tema.</p>}
+            {!resolved && (
+              <EmptyState
+                compact
+                icon={GlobeHemisphereWest}
+                title="Elige un elemento"
+                description="Selecciona un mundo, curso o tema para ver el detalle."
+              />
+            )}
             {resolved?.kind === 'world' && (
               <WorldDetail
                 world={resolved.world}
@@ -405,7 +419,12 @@ function WorldDetail({
         <p className="muted">Actualizado {formatWhen(world.updated_at)}</p>
       </header>
       {world.courses.length === 0 ? (
-        <p className="muted">Este mundo no tiene cursos.</p>
+        <EmptyState
+          compact
+          icon={BookOpen}
+          title="Sin cursos"
+          description="Este mundo no tiene cursos."
+        />
       ) : (
         <ul className="admin-tree-summary">
           {world.courses.map((course) => (
@@ -452,7 +471,12 @@ function CourseDetail({
         <h2>{course.name}</h2>
       </header>
       {course.missions.length === 0 ? (
-        <p className="muted">Este curso no tiene temas.</p>
+        <EmptyState
+          compact
+          icon={Flag}
+          title="Sin temas"
+          description="Este curso no tiene temas."
+        />
       ) : (
         <ul className="admin-tree-summary">
           {course.missions.map((mission) => (
@@ -516,7 +540,12 @@ function MissionDetail({
           <p className="muted">{mission.study.summary || 'Sin resumen.'}</p>
         </div>
       ) : (
-        <p className="muted">No hay sesión de estudio en este período.</p>
+        <EmptyState
+          compact
+          icon={BookOpen}
+          title="Sin sesión de estudio"
+          description="No hay sesión de estudio en este período."
+        />
       )}
       <ChallengeBlock
         title="Desafíos del tema"
@@ -543,7 +572,7 @@ function ChallengeBlock({
     <div className="admin-challenge-block">
       <h3>{title}</h3>
       {rows.length === 0 ? (
-        <p className="muted">{empty}</p>
+        <EmptyState compact icon={Trophy} title="Sin desafíos" description={empty} />
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">

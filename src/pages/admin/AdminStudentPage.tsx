@@ -15,6 +15,7 @@ import {
 } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { AppLoader } from '../../components/AppLoader'
+import { EmptyState } from '../../components/EmptyState'
 import { DateField } from '../../components/ui/DateField'
 import { PasswordField, TextField } from '../../components/ui/Field'
 import { SelectField } from '../../components/ui/SelectField'
@@ -325,7 +326,12 @@ function ResumenTab({
             </p>
           </div>
           {tasks.items.length === 0 ? (
-            <p className="muted">Aún no tiene tareas.</p>
+            <EmptyState
+              compact
+              icon={CheckCircle}
+              title="Sin tareas"
+              description="Aún no tiene tareas."
+            />
           ) : (
             <div className="admin-table-wrap admin-table-wrap--flush">
               <table className="admin-table">
@@ -362,7 +368,12 @@ function ResumenTab({
             <h2>Últimos desafíos</h2>
           </div>
           {challenges.recent.length === 0 ? (
-            <p className="muted">Todavía no completa un desafío.</p>
+            <EmptyState
+              compact
+              icon={Trophy}
+              title="Sin desafíos"
+              description="Todavía no completa un desafío."
+            />
           ) : (
             <div className="admin-table-wrap admin-table-wrap--flush">
               <table className="admin-table">
@@ -520,6 +531,13 @@ function TasksTab({
       {error && <p className="form-error">{error}</p>}
       {loading ? (
         <AppLoader message="Cargando tareas…" variant="section" />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          compact
+          icon={CheckCircle}
+          title="Sin tareas"
+          description="No hay tareas con estos filtros."
+        />
       ) : (
         <div className="admin-table-wrap admin-table-wrap--flush">
           <table className="admin-table">
@@ -535,27 +553,19 @@ function TasksTab({
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="admin-table-empty">
-                    No hay tareas con estos filtros.
+              {rows.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <strong>{item.title}</strong>
                   </td>
+                  <td>{item.course_name}</td>
+                  <td>{taskStatusLabel(item.status)}</td>
+                  <td>{item.study_passed ? 'Listo' : 'Pendiente'}</td>
+                  <td>{formatWhen(item.created_at)}</td>
+                  <td>{formatDay(item.due_date)}</td>
+                  <td>{formatWhen(item.updated_at)}</td>
                 </tr>
-              ) : (
-                rows.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong>{item.title}</strong>
-                    </td>
-                    <td>{item.course_name}</td>
-                    <td>{taskStatusLabel(item.status)}</td>
-                    <td>{item.study_passed ? 'Listo' : 'Pendiente'}</td>
-                    <td>{formatWhen(item.created_at)}</td>
-                    <td>{formatDay(item.due_date)}</td>
-                    <td>{formatWhen(item.updated_at)}</td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -615,6 +625,13 @@ function TaskStudyBlock({ studentId }: { studentId: number }) {
       {error && <p className="form-error">{error}</p>}
       {loading ? (
         <AppLoader message="Cargando estudio…" variant="section" />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          compact
+          icon={BookOpen}
+          title="Sin sesiones"
+          description="No hay sesiones de estudio de tareas en este período."
+        />
       ) : (
         <div className="admin-table-wrap admin-table-wrap--flush">
           <table className="admin-table">
@@ -628,25 +645,17 @@ function TaskStudyBlock({ studentId }: { studentId: number }) {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="admin-table-empty">
-                    No hay sesiones de estudio de tareas en este período.
+              {rows.map((item, index) => (
+                <tr key={`${item.kind}-${item.ref_id}-${item.updated_at}-${index}`}>
+                  <td>
+                    <strong>{item.title}</strong>
                   </td>
+                  <td>{item.course_name}</td>
+                  <td>{phaseLabel(item.phase)}</td>
+                  <td className="admin-table-summary">{item.summary || '—'}</td>
+                  <td>{formatWhen(item.updated_at)}</td>
                 </tr>
-              ) : (
-                rows.map((item, index) => (
-                  <tr key={`${item.kind}-${item.ref_id}-${item.updated_at}-${index}`}>
-                    <td>
-                      <strong>{item.title}</strong>
-                    </td>
-                    <td>{item.course_name}</td>
-                    <td>{phaseLabel(item.phase)}</td>
-                    <td className="admin-table-summary">{item.summary || '—'}</td>
-                    <td>{formatWhen(item.updated_at)}</td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
@@ -826,7 +835,12 @@ function AccountTab({
         </form>
         <ImportCoursesBlock studentId={studentId} onImported={onRefresh} />
         {courses.length === 0 && (
-          <p className="muted">Todavía no tiene materias asignadas.</p>
+          <EmptyState
+            compact
+            icon={BookOpen}
+            title="Sin materias"
+            description="Todavía no tiene materias asignadas."
+          />
         )}
         <ul className="admin-course-list">
           {activeCourses.map((course) => (
@@ -958,7 +972,12 @@ function ImportCoursesBlock({
     <div className="admin-import">
       <p className="admin-import-label">Importar de otro alumno</p>
       {students.length === 0 ? (
-        <p className="muted">No hay otros alumnos de quienes copiar materias.</p>
+        <EmptyState
+          compact
+          icon={Student}
+          title="Sin otros alumnos"
+          description="No hay otros alumnos de quienes copiar materias."
+        />
       ) : (
         <>
           <SelectField
@@ -978,7 +997,12 @@ function ImportCoursesBlock({
             <AppLoader message="Cargando cursos…" variant="section" />
           )}
           {!loadingCourses && sourceId && sourceCourses.length === 0 && (
-            <p className="muted">Ese alumno no tiene materias activas.</p>
+            <EmptyState
+              compact
+              icon={BookOpen}
+              title="Sin materias activas"
+              description="Ese alumno no tiene materias activas."
+            />
           )}
           {sourceCourses.length > 0 && (
             <>

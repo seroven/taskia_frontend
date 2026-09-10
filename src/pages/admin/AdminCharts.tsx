@@ -1,5 +1,13 @@
 import { useMemo } from 'react'
 import {
+  ChartBar,
+  ChartLine,
+  CheckCircle,
+  CurrencyDollar,
+  Lightning,
+  UsersThree,
+} from '@phosphor-icons/react'
+import {
   Area,
   AreaChart,
   Bar,
@@ -14,6 +22,7 @@ import {
 } from 'recharts'
 import type { TooltipContentProps } from 'recharts'
 import { useAccent } from '../../accent'
+import { EmptyState } from '../../components/EmptyState'
 import { useTheme } from '../../theme'
 import type { AdminDashboard, AdminRosterRow } from '../../lib/adminTypes'
 import { formatDay } from './adminFormat'
@@ -318,7 +327,12 @@ export function AdminDashboardCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="muted">No hay tareas, estudio ni desafíos en este período.</p>
+          <EmptyState
+            compact
+            icon={ChartLine}
+            title="Sin actividad"
+            description="No hay tareas, estudio ni desafíos en este período."
+          />
         )}
       </section>
 
@@ -386,7 +400,12 @@ export function AdminDashboardCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="muted">Nadie usó el tutor, transcripciones ni desafíos en este período.</p>
+          <EmptyState
+            compact
+            icon={Lightning}
+            title="Sin uso de Gemini"
+            description="Nadie usó el tutor, transcripciones ni desafíos en este período."
+          />
         )}
       </section>
 
@@ -398,7 +417,12 @@ export function AdminDashboardCharts({
           </p>
         </div>
         {costRows.length === 0 ? (
-          <p className="muted">Sin gasto de IA en este período.</p>
+          <EmptyState
+            compact
+            icon={CurrencyDollar}
+            title="Sin gasto"
+            description="Sin gasto de IA en este período."
+          />
         ) : (
           <div
             className="admin-chart"
@@ -450,9 +474,19 @@ export function AdminDashboardCharts({
           <h2>Acciones por alumno</h2>
         </div>
         {actionRows.length === 0 && !hasChildActions && !hasUsageCalls ? (
-          <p className="muted">No hay acciones en este período.</p>
+          <EmptyState
+            compact
+            icon={UsersThree}
+            title="Sin acciones"
+            description="No hay acciones en este período."
+          />
         ) : actionRows.length === 0 ? (
-          <p className="muted">Hay actividad, pero no se pudo agrupar por alumno.</p>
+          <EmptyState
+            compact
+            icon={ChartBar}
+            title="Sin desglose"
+            description="Hay actividad, pero no se pudo agrupar por alumno."
+          />
         ) : (
           <div
             className="admin-chart"
@@ -604,7 +638,12 @@ export function AdminDashboardCharts({
           <p className="muted">Atrasos o más de {IDLE_DAYS} días sin estudiar</p>
         </div>
         {followup.length === 0 ? (
-          <p className="muted">Nadie tiene atrasos ni lleva varios días sin estudiar.</p>
+          <EmptyState
+            compact
+            icon={CheckCircle}
+            title="Todo al día"
+            description="Nadie tiene atrasos ni lleva varios días sin estudiar."
+          />
         ) : (
           <ul className="admin-followup">
             {followup.map(({ row, reason }) => (

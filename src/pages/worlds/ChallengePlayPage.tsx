@@ -3,9 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   CaretLeft,
   PaperPlaneTilt,
+  Question,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { AppLoader } from '../../components/AppLoader'
+import { EmptyState } from '../../components/EmptyState'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
 import { ChallengeReviewAnswersList } from '../../components/worlds/ChallengeReviewAnswersList'
 import { WorldsHero } from '../../components/worlds/WorldsHero'
@@ -356,7 +358,13 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
           onBack={() => void leaveChallenge()}
           showAppearance={false}
         />
-        <p className="muted worlds-center-text">No hay más preguntas.</p>
+        <div className="worlds-content">
+          <EmptyState
+            icon={Question}
+            title="Sin preguntas"
+            description="No hay más preguntas en este desafío."
+          />
+        </div>
       </div>
     )
   }

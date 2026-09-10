@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { DownloadSimple } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { AppLoader } from '../AppLoader'
+import { EmptyState } from '../EmptyState'
 import { WorldsBoardPill } from './WorldsStatusPill'
 import { WorldsModalShell } from './WorldsModalShell'
 import { errorMessage } from '../../lib/errors'
@@ -80,7 +81,12 @@ export function ImportMissionsModal({
             <div className="modal-panel-body">
               {loading && <AppLoader message="Buscando misiones…" variant="section" />}
               {!loading && items.length === 0 && (
-                <p className="muted">No hay misiones de este curso en otros mundos.</p>
+                <EmptyState
+                  compact
+                  icon={DownloadSimple}
+                  title="Nada que traer"
+                  description="No hay misiones de este curso en otros mundos."
+                />
               )}
               <ul className="worlds-check-list">
                 {items.map((item) => (
