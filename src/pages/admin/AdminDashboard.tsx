@@ -18,6 +18,7 @@ import type {
   AdminDashboard as AdminDashboardData,
   AdminStudent,
 } from '../../lib/adminTypes'
+import { AppLoader } from '../../components/AppLoader'
 import { AdminDashboardCharts } from './AdminCharts'
 import { AdminStatCard } from './AdminStatCard'
 import { formatWhen } from './adminFormat'
@@ -139,7 +140,7 @@ export function AdminDashboard({ onOpenStudent, onCreateStudent }: Props) {
       </div>
 
       {error && <p className="form-error banner">{error}</p>}
-      {loading && <p className="muted">Cargando dashboard…</p>}
+      {loading && <AppLoader message="Cargando dashboard…" />}
 
       {data && !loading && (
         <>

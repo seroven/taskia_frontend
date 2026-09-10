@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { ChallengeReviewAnswersList } from '../../components/worlds/ChallengeReviewAnswersList'
 import { challengeDifficultyIcon } from '../../components/worlds/worldsIcons'
 import { errorMessage } from '../../lib/errors'
@@ -36,7 +37,7 @@ export function AdminChallengeReview({ studentId, challengeId, onBack }: Props) 
   }, [studentId, challengeId])
 
   if (loading) {
-    return <p className="muted">Cargando desafío…</p>
+    return <AppLoader message="Cargando desafío…" />
   }
 
   if (error || !detail) {

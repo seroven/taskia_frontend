@@ -14,6 +14,7 @@ import {
   Trophy,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { DateField } from '../../components/ui/DateField'
 import { PasswordField, TextField } from '../../components/ui/Field'
 import { SelectField } from '../../components/ui/SelectField'
@@ -114,7 +115,7 @@ export function AdminStudentPage({
   }
 
   if (loading) {
-    return <p className="muted">Cargando ficha…</p>
+    return <AppLoader message="Cargando ficha…" />
   }
 
   if (error || !overview) {
@@ -518,7 +519,7 @@ function TasksTab({
       </div>
       {error && <p className="form-error">{error}</p>}
       {loading ? (
-        <p className="muted">Cargando tareas…</p>
+        <AppLoader message="Cargando tareas…" variant="section" />
       ) : (
         <div className="admin-table-wrap admin-table-wrap--flush">
           <table className="admin-table">
@@ -613,7 +614,7 @@ function TaskStudyBlock({ studentId }: { studentId: number }) {
       </div>
       {error && <p className="form-error">{error}</p>}
       {loading ? (
-        <p className="muted">Cargando estudio…</p>
+        <AppLoader message="Cargando estudio…" variant="section" />
       ) : (
         <div className="admin-table-wrap admin-table-wrap--flush">
           <table className="admin-table">
@@ -973,7 +974,9 @@ function ImportCoursesBlock({
             ]}
             onChange={setSourceId}
           />
-          {loadingCourses && <p className="muted">Cargando materias…</p>}
+          {loadingCourses && (
+            <AppLoader message="Cargando cursos…" variant="section" />
+          )}
           {!loadingCourses && sourceId && sourceCourses.length === 0 && (
             <p className="muted">Ese alumno no tiene materias activas.</p>
           )}

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { AppLoader } from '../AppLoader'
 import { WorldsIconBadge } from './WorldsIconBadge'
 import { challengeScopeIcon } from './worldsIcons'
 import {
@@ -15,6 +16,7 @@ interface Props {
   emptyText?: string
   action?: ReactNode
   className?: string
+  loading?: boolean
 }
 
 export function ChallengeHistoryList({
@@ -24,8 +26,9 @@ export function ChallengeHistoryList({
   emptyText,
   action,
   className = '',
+  loading = false,
 }: Props) {
-  if (items.length === 0 && emptyText == null) return null
+  if (!loading && items.length === 0 && emptyText == null) return null
 
   return (
     <section className={`worlds-block ${className}`.trim()}>
@@ -33,7 +36,9 @@ export function ChallengeHistoryList({
         <p className="worlds-block-label">{title}</p>
         {action}
       </div>
-      {items.length === 0 ? (
+      {loading ? (
+        <AppLoader message="Cargando desafíos…" variant="section" />
+      ) : items.length === 0 ? (
         <p className="muted worlds-panel-empty">{emptyText}</p>
       ) : (
         <ul className="worlds-history">

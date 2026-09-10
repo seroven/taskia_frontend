@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Play, Trophy } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../AppLoader'
 import { WorldsModalShell } from './WorldsModalShell'
 import { challengeDifficultyIcon } from './worldsIcons'
 import { errorMessage } from '../../lib/errors'
@@ -114,7 +115,9 @@ export function ChallengeSetupModal({
       icon={Trophy}
     >
             <div className="modal-panel-body">
-              {loading && <p className="muted">Cargando dificultades…</p>}
+              {loading && (
+                <AppLoader message="Cargando dificultades…" variant="section" />
+              )}
               <div className="worlds-diff-grid" role="group" aria-label="Dificultad">
                 {options.map((opt) => (
                   <button

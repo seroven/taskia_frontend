@@ -6,6 +6,7 @@ import {
   Trophy,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { ChallengeSetupModal } from '../../components/worlds/ChallengeSetupModal'
 import { ChallengeHistoryList } from '../../components/worlds/ChallengeHistoryList'
 import { CreateMissionModal } from '../../components/worlds/CreateMissionModal'
@@ -112,7 +113,7 @@ export function CourseDetail({
         <div className="worlds-two-col">
           <section className="worlds-panel">
             <p className="worlds-block-label">Misiones</p>
-            {loading && <p className="muted">Cargando…</p>}
+            {loading && <AppLoader message="Cargando misiones…" variant="section" />}
             {!loading && missions.length === 0 && (
               <WorldsEmptyState
                 compact
@@ -165,6 +166,7 @@ export function CourseDetail({
           <ChallengeHistoryList
             className="worlds-panel worlds-challenges-panel"
             items={challenges}
+            loading={loading}
             onOpen={onOpenChallenge}
             title="Desafíos"
             emptyText="Cuando completes un desafío de este curso, aparece aquí."

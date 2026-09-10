@@ -7,6 +7,7 @@ import {
   GlobeHemisphereWest,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { DateField } from '../../components/ui/DateField'
 import { SelectField } from '../../components/ui/SelectField'
 import { errorMessage } from '../../lib/errors'
@@ -190,7 +191,7 @@ export function AdminWorldsExplorer({
         </button>
       </div>
       {error && <p className="form-error">{error}</p>}
-      {loading && <p className="muted">Cargando mundos…</p>}
+      {loading && <AppLoader message="Cargando mundos…" variant="section" />}
       {!loading && data && data.worlds.length === 0 && (
         <p className="muted">
           {hasFilters

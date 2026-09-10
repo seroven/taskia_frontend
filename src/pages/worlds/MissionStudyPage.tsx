@@ -8,11 +8,11 @@ import {
   PencilSimple,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
 import { StudyBoardPane } from '../../components/study/StudyBoardPane'
 import { StudyChat } from '../../components/study/StudyChat'
 import { TextAreaField, TextField } from '../../components/ui/Field'
-import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
 import {
   WorldsBoardPill,
   WorldsStatusPill,
@@ -235,11 +235,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
   if (loading) {
     return (
       <div className="study-page">
-        <div className="boot-screen study-boot">
-          <WorldsIconBadge icon={BookOpenText} size="lg" />
-          <p className="brand">Misión</p>
-          <p className="muted">Preparando la sesión…</p>
-        </div>
+        <AppLoader message="Preparando la sesión…" />
       </div>
     )
   }

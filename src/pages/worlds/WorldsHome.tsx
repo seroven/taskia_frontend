@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GlobeHemisphereWest, Plus } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { CreateWorldModal } from '../../components/worlds/CreateWorldModal'
 import { WorldsCoverCard } from '../../components/worlds/WorldsCoverCard'
 import { WorldsCoverGrid, WorldsCoverItem } from '../../components/worlds/WorldsCoverGrid'
@@ -63,7 +64,7 @@ export function WorldsHome({ onBack, onOpenWorld }: Props) {
           }
         />
 
-        {loading && <p className="muted worlds-center-text">Cargando mundos…</p>}
+        {loading && <AppLoader message="Cargando mundos…" variant="section" />}
 
         {!loading && worlds.length === 0 && (
           <WorldsEmptyState

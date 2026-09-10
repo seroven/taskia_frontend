@@ -3,13 +3,12 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   CaretLeft,
   PaperPlaneTilt,
-  Trophy,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
 import { ChallengeReviewAnswersList } from '../../components/worlds/ChallengeReviewAnswersList'
 import { WorldsHero } from '../../components/worlds/WorldsHero'
-import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
 import { WorldsNav } from '../../components/worlds/WorldsNav'
 import { challengeDifficultyIcon } from '../../components/worlds/worldsIcons'
 import { errorMessage } from '../../lib/errors'
@@ -242,11 +241,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   if (loading) {
     return (
       <div className="worlds-shell">
-        <div className="boot-screen study-boot">
-          <WorldsIconBadge icon={Trophy} size="lg" />
-          <p className="brand">Desafío</p>
-          <p className="muted">Cargando…</p>
-        </div>
+        <AppLoader message="Cargando desafío…" />
       </div>
     )
   }

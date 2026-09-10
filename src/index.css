@@ -4187,6 +4187,73 @@ button.ghost.worlds-back {
   gap: 20px;
 }
 
+.app-loader {
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.app-loader--page {
+  min-height: min(52vh, 420px);
+  padding: 32px 16px;
+}
+
+.worlds-shell > .app-loader--page,
+.study-page > .app-loader--page {
+  flex: 1;
+  min-height: 0;
+}
+
+.app-loader--section {
+  min-height: 140px;
+  padding: 20px 12px;
+}
+
+.app-loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 28px;
+  border-radius: 24px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-loader--section .app-loader-card {
+  gap: 10px;
+  padding: 16px 22px;
+  box-shadow: none;
+}
+
+.app-loader-card p {
+  margin: 0;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+}
+
+.app-loader--section .app-loader-card p {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.app-loader-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 4px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  animation: board-spin 0.75s linear infinite;
+}
+
+.app-loader--section .app-loader-spinner {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+}
+
 .admin-page-head {
   display: flex;
   justify-content: space-between;

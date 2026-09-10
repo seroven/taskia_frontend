@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BookOpen, GlobeHemisphereWest, Plus, Trophy } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../../components/AppLoader'
 import { ChallengeSetupModal } from '../../components/worlds/ChallengeSetupModal'
 import { ChallengeHistoryList } from '../../components/worlds/ChallengeHistoryList'
 import { WorldsCoverCard } from '../../components/worlds/WorldsCoverCard'
@@ -115,7 +116,7 @@ export function WorldDetail({
         <div className="worlds-two-col">
           <section className="worlds-panel">
             <p className="worlds-block-label">Cursos</p>
-            {loading && <p className="muted">Cargando…</p>}
+            {loading && <AppLoader message="Cargando cursos…" variant="section" />}
             {!loading && allCourses.length === 0 && (
               <WorldsEmptyState
                 compact
@@ -183,6 +184,7 @@ export function WorldDetail({
           <ChallengeHistoryList
             className="worlds-panel worlds-challenges-panel"
             items={challenges}
+            loading={loading}
             onOpen={onOpenChallenge}
             title="Desafíos"
             emptyText="Cuando completes un desafío, aparece aquí."

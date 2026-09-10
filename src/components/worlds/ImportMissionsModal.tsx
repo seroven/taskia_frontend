@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DownloadSimple } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { AppLoader } from '../AppLoader'
 import { WorldsBoardPill } from './WorldsStatusPill'
 import { WorldsModalShell } from './WorldsModalShell'
 import { errorMessage } from '../../lib/errors'
@@ -77,7 +78,7 @@ export function ImportMissionsModal({
       wide
     >
             <div className="modal-panel-body">
-              {loading && <p className="muted">Buscando misiones…</p>}
+              {loading && <AppLoader message="Buscando misiones…" variant="section" />}
               {!loading && items.length === 0 && (
                 <p className="muted">No hay misiones de este curso en otros mundos.</p>
               )}
