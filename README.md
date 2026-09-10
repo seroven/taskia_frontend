@@ -1,75 +1,84 @@
-# React + TypeScript + Vite
+# Taskia — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interfaz web de **Taskia**, una app de estudio para alumnos con un panel para el adulto que los acompaña.
 
-Currently, two official plugins are available:
+El alumno organiza tareas, estudia con un tutor de IA (chat y pizarra) y practica en mundos con misiones y desafíos. El adulto no usa el tablero: entra al panel administrativo para crear cuentas, asignar cursos y ver el progreso.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+La API vive en `[taskia_backend](../taskia_backend)`. Este paquete solo habla con ella (`VITE_API_URL`) y guarda la sesión en una cookie httpOnly que el navegador envía solo (`credentials: 'include'`).
 
-## React Compiler
+## Qué puede hacer cada rol
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Alumno
 
-## Expanding the ESLint configuration
+- Iniciar sesión. No hay registro público: las cuentas las crea un adulto.
+- **Tablero kanban** de tareas (Pendiente, En proceso, En estudio, Terminado), con arrastrar y soltar, filtros y candado de estudio en dificultades altas.
+- Crear y editar tareas (curso, dificultad, tipo diaria/proyecto, vencimiento, pizarra opcional).
+- **Modo estudio** de una tarea: chat con el tutor (Gemini), fases de comprensión / práctica / repaso, voz a texto y pizarra Excalidraw si la tarea la usa.
+- **Mundos**: crear mundos, agregar cursos, crear o importar misiones, estudiar un tema y lanzar desafíos (mundo, curso o misión).
+- Tema claro/oscuro y color de acento.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Administrador
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Al entrar, la app abre solo el panel (`AdminPage`):
 
+- Dashboard con indicadores, gráficas y listado de alumnos.
+- Crear y editar alumnos, pausar o reactivar cuentas.
+- Asignar materias (crear, archivar, importar desde otro alumno).
+- Ficha del alumno: resumen, tareas, sesiones de estudio, mundos y revisión de desafíos.
+
+
+
+## Stack
+
+- React 19 + TypeScript + Vite
+- Framer Motion, Phosphor Icons
+- `@dnd-kit` (tablero)
+- Excalidraw (pizarra)
+- Recharts (dashboard admin)
+
+La navegación no usa React Router: `App.tsx` cambia de vista (`board`, `study`, `worlds`, `world`, `course`, `mission`, `challenge`). Al arrancar se llama a `GET /auth/me`; mientras responde se muestra el loader.
+
+## Cómo correrlo
+
+1. Copia `.env.example` a `.env.development`.
+2. Asegúrate de que el backend esté en marcha (por defecto `http://localhost:3001`).
+3. Instala y arranca:
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Vite usa `--mode development` y lee `.env.development`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Script                                    | Qué hace                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| `npm run dev`                             | Desarrollo local (`.env.development`)                              |
+| `npm run dev:pd`                          | Mismo Vite con `.env.pd`                                           |
+| `npm run build` / `build:qa` / `build:pd` | Build según modo (`qa` o `pd` congela `VITE_API_URL` en el bundle) |
+| `npm run preview` / `preview:pd`          | Sirve el build                                                     |
+
+
+Variable de entorno:
 
 ```
+VITE_API_URL=http://localhost:3001
+```
+
+Si el front y la API están en dominios distintos (por ejemplo dos servicios en Render), el backend tiene que enviar la cookie con `SameSite=None` y `Secure`. Ver el README del backend.
+
+## Carpetas
+
+```
+src/
+  App.tsx            Vistas y sesión
+  api.ts             Cliente HTTP
+  pages/             Tablero, estudio, auth, admin, mundos
+  components/        UI compartida, estudio, mundos
+  accent.tsx         Color de acento
+  theme.tsx          Claro / oscuro
+```
+
