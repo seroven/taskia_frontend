@@ -4263,6 +4263,11 @@ button.ghost.worlds-back {
   min-height: 0;
 }
 
+.boot-screen > .app-loader--page {
+  min-height: 0;
+  padding: 0;
+}
+
 .app-loader--section {
   min-height: 140px;
   padding: 20px 12px;

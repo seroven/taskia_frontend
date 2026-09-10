@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AccentProvider } from './accent'
 import { AuthProvider, useAuth } from './auth'
+import { AppLoader } from './components/AppLoader'
 import { ThemeProvider } from './theme'
 import { ToastProvider } from './toast'
 import { AdminPage } from './pages/AdminPage'
@@ -52,8 +53,7 @@ function AppRouter() {
   if (loading) {
     return (
       <div className="boot-screen">
-        <p className="brand">Taskia</p>
-        <p className="muted">Cargando…</p>
+        <AppLoader message="Cargando…" />
       </div>
     )
   }
