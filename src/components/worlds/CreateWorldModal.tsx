@@ -1,8 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { GlobeHemisphereWest, Plus } from '@phosphor-icons/react'
 import { TextAreaField, TextField } from '../ui/Field'
-import { WorldsIconBadge } from './WorldsIconBadge'
+import { WorldsModalShell } from './WorldsModalShell'
 import { errorMessage } from '../../lib/errors'
 
 interface Props {
@@ -43,63 +42,40 @@ export function CreateWorldModal({ open, onClose, onCreate }: Props) {
   }
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="modal-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            className="modal-panel"
-            role="dialog"
-            aria-labelledby="create-world-title"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.22 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-panel-header worlds-modal-header">
-              <WorldsIconBadge icon={GlobeHemisphereWest} size="lg" />
-              <div>
-                <h2 id="create-world-title">Nuevo mundo</h2>
-                <p className="lede">
-                  Un mundo agrupa los cursos y misiones que quieres estudiar.
-                </p>
-              </div>
-            </div>
-            <form className="modal-panel-body" onSubmit={(e) => void onSubmit(e)}>
-              <TextField
-                label="Nombre"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej. Mi año escolar"
-                autoFocus
-              />
-              <TextAreaField
-                label="Descripción (opcional)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="¿De qué trata este mundo?"
-                rows={3}
-              />
-              {error && <p className="form-error">{error}</p>}
-              <div className="modal-actions">
-                <button type="button" className="ghost" onClick={onClose} disabled={submitting}>
-                  Cancelar
-                </button>
-                <button type="submit" className="primary" disabled={submitting}>
-                  <Plus size={18} weight="bold" />
-                  {submitting ? 'Creando…' : 'Crear mundo'}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <WorldsModalShell
+      open={open}
+      onClose={onClose}
+      titleId="create-world-title"
+      title="Nuevo mundo"
+      lead="Un mundo agrupa los cursos y misiones que quieres estudiar."
+      icon={GlobeHemisphereWest}
+    >
+      <form className="modal-panel-body" onSubmit={(e) => void onSubmit(e)}>
+        <TextField
+          label="Nombre"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ej. Mi año escolar"
+          autoFocus
+        />
+        <TextAreaField
+          label="Descripción (opcional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="¿De qué trata este mundo?"
+          rows={3}
+        />
+        {error && <p className="form-error">{error}</p>}
+        <div className="modal-actions">
+          <button type="button" className="ghost" onClick={onClose} disabled={submitting}>
+            Cancelar
+          </button>
+          <button type="submit" className="primary" disabled={submitting}>
+            <Plus size={18} weight="bold" />
+            {submitting ? 'Creando…' : 'Crear mundo'}
+          </button>
+        </div>
+      </form>
+    </WorldsModalShell>
   )
 }

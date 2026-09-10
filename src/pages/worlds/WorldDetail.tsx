@@ -1,25 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import {
-  ArrowLeft,
-  BookOpen,
-  GlobeHemisphereWest,
-  Plus,
-  Trophy,
-} from '@phosphor-icons/react'
+import { BookOpen, GlobeHemisphereWest, Plus, Trophy } from '@phosphor-icons/react'
 import { api } from '../../api'
-import { ExpandIconButton } from '../../components/ExpandIconButton'
 import { ChallengeSetupModal } from '../../components/worlds/ChallengeSetupModal'
 import { ChallengeHistoryList } from '../../components/worlds/ChallengeHistoryList'
 import { WorldsCoverCard } from '../../components/worlds/WorldsCoverCard'
+import { WorldsCoverGrid, WorldsCoverItem } from '../../components/worlds/WorldsCoverGrid'
 import { WorldsEmptyState } from '../../components/worlds/WorldsEmptyState'
-import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
-import { courseProgressIcon } from '../../components/worlds/worldsIcons'
-import { AppearanceTools } from '../../components/AppearanceTools'
+import { WorldsHero } from '../../components/worlds/WorldsHero'
+import { WorldsNav } from '../../components/worlds/WorldsNav'
+import { WorldsStatusPill, WorldsTags } from '../../components/worlds/WorldsStatusPill'
 import { SelectField } from '../../components/ui/SelectField'
 import { errorMessage } from '../../lib/errors'
 import {
-  COURSE_PROGRESS_LABEL,
   courseProgress,
   type StudyChallenge,
   type StudyWorld,
@@ -105,33 +97,20 @@ export function WorldDetail({
 
   return (
     <div className="worlds-shell">
-      <nav className="worlds-nav">
-        <ExpandIconButton
-          className="worlds-back"
-          icon={ArrowLeft}
-          label="Mundos"
-          weight="bold"
-          onClick={onBack}
-        />
-        <div className="worlds-nav-tools">
-          <AppearanceTools />
-        </div>
-      </nav>
+      <WorldsNav backLabel="Mundos" onBack={onBack} />
 
       {error && <p className="form-error banner">{error}</p>}
 
       <div className="worlds-content worlds-stage">
-        <header className="worlds-hero worlds-hero--page">
-          <WorldsIconBadge icon={GlobeHemisphereWest} size="lg" />
-          <div className="worlds-hero-copy">
-            <h1 className="worlds-hero-title">{world?.title ?? 'Mundo'}</h1>
-            {world?.description ? (
-              <p className="worlds-hero-lead">{world.description}</p>
-            ) : (
-              <p className="worlds-hero-lead">Toca un curso para ver sus temas.</p>
-            )}
-          </div>
-        </header>
+        <WorldsHero
+          icon={GlobeHemisphereWest}
+          title={world?.title ?? 'Mundo'}
+          lead={
+            world?.description
+              ? world.description
+              : 'Toca un curso para ver sus temas.'
+          }
+        />
 
         <div className="worlds-two-col">
           <section className="worlds-panel">
@@ -153,17 +132,11 @@ export function WorldDetail({
                 description="Elige uno de los tuyos y empieza a crear misiones."
               />
             )}
-            <ul className="worlds-cover-grid">
+            <WorldsCoverGrid>
               {courses.map((course, index) => {
                 const progress = courseProgress(course)
-                const ProgressIcon = courseProgressIcon(progress)
                 return (
-                  <motion.li
-                    key={course.course_id}
-                    initial={{ opacity: 0, y: 12, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.24 }}
-                  >
+                  <WorldsCoverItem key={course.course_id} index={index}>
                     <WorldsCoverCard
                       kind="course"
                       icon={BookOpen}
@@ -172,18 +145,15 @@ export function WorldDetail({
                       status={progress}
                       onClick={() => onOpenCourse(course.course_id)}
                       tags={
-                        <span className="worlds-row-tags">
-                          <span className={`worlds-status worlds-status-${progress}`}>
-                            <ProgressIcon size={14} weight="fill" />
-                            {COURSE_PROGRESS_LABEL[progress]}
-                          </span>
-                        </span>
+                        <WorldsTags>
+                          <WorldsStatusPill kind="courseProgress" value={progress} />
+                        </WorldsTags>
                       }
                     />
-                  </motion.li>
+                  </WorldsCoverItem>
                 )
               })}
-            </ul>
+            </WorldsCoverGrid>
 
             {available.length > 0 && (
               <div className="worlds-add-course">

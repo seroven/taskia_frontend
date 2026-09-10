@@ -5,13 +5,11 @@ import {
   Flag,
   Flame,
   GlobeHemisphereWest,
-  PencilLine,
   PlayCircle,
   Rocket,
   SealCheck,
   Sparkle,
   Sword,
-  Trophy,
 } from '@phosphor-icons/react'
 import type {
   ChallengeDifficulty,
@@ -32,16 +30,8 @@ export function missionStatusIcon(status: MissionStatus | string): Icon {
 }
 
 export function courseProgressIcon(progress: CourseProgress | string): Icon {
-  switch (progress) {
-    case 'studying':
-      return PlayCircle
-    case 'mastered':
-      return SealCheck
-    case 'empty':
-      return CircleDashed
-    default:
-      return Flag
-  }
+  if (progress === 'empty') return CircleDashed
+  return missionStatusIcon(progress)
 }
 
 export function challengeScopeIcon(scope: ChallengeScope | string): Icon {
@@ -65,13 +55,6 @@ export function challengeDifficultyIcon(difficulty: ChallengeDifficulty | string
       return Sparkle
   }
 }
-
-export const WorldsIcons = {
-  book: BookOpen,
-  pencil: PencilLine,
-  rocket: Rocket,
-  trophy: Trophy,
-} as const
 
 export type PhosphorIcon = Icon
 export type PhosphorIconProps = IconProps

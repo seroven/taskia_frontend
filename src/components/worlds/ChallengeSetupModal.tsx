@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { Play, Trophy } from '@phosphor-icons/react'
 import { api } from '../../api'
-import { WorldsIconBadge } from './WorldsIconBadge'
+import { WorldsModalShell } from './WorldsModalShell'
 import { challengeDifficultyIcon } from './worldsIcons'
 import { errorMessage } from '../../lib/errors'
 import {
@@ -101,35 +100,19 @@ export function ChallengeSetupModal({
   }
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="modal-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            className="modal-panel"
-            role="dialog"
-            aria-labelledby="challenge-setup-title"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.22 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-panel-header worlds-modal-header">
-              <WorldsIconBadge icon={Trophy} size="lg" />
-              <div>
-                <h2 id="challenge-setup-title">Nuevo desafío</h2>
-                <p className="lede">
-                  {title ? `Alcance: ${title}. ` : ''}
-                  Sin pistas del tutor: puedes volver a preguntas anteriores y cambiar tu respuesta.
-                </p>
-              </div>
-            </div>
+    <WorldsModalShell
+      open={open}
+      onClose={onClose}
+      titleId="challenge-setup-title"
+      title="Nuevo desafío"
+      lead={
+        <>
+          {title ? `Alcance: ${title}. ` : ''}
+          Sin pistas del tutor: puedes volver a preguntas anteriores y cambiar tu respuesta.
+        </>
+      }
+      icon={Trophy}
+    >
             <div className="modal-panel-body">
               {loading && <p className="muted">Cargando dificultades…</p>}
               <div className="worlds-diff-grid" role="group" aria-label="Dificultad">
@@ -163,9 +146,6 @@ export function ChallengeSetupModal({
                 </button>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </WorldsModalShell>
   )
 }

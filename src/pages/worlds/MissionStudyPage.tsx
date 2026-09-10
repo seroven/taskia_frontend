@@ -13,11 +13,13 @@ import { StudyBoardPane } from '../../components/study/StudyBoardPane'
 import { StudyChat } from '../../components/study/StudyChat'
 import { TextAreaField, TextField } from '../../components/ui/Field'
 import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
-import { missionStatusIcon } from '../../components/worlds/worldsIcons'
+import {
+  WorldsBoardPill,
+  WorldsStatusPill,
+} from '../../components/worlds/WorldsStatusPill'
 import { errorMessage } from '../../lib/errors'
 import { parseDrawOps, type StudyBoardScene } from '../../lib/studyProtocol'
 import type { MissionContext, StudyMission } from '../../lib/worldsTypes'
-import { MISSION_STATUS_LABEL } from '../../lib/worldsTypes'
 import { useTheme } from '../../theme'
 import { useToast } from '../../toast'
 
@@ -256,8 +258,6 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
     )
   }
 
-  const StatusIcon = missionStatusIcon(mission.status)
-
   const studyContext = context
     ? {
         task_id: mission.id,
@@ -285,16 +285,8 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
           <h1>{mission.title}</h1>
           <div className="study-header-tags">
             <span className="course-tag">{mission.course_name}</span>
-            <span className={`worlds-status worlds-status-${mission.status}`}>
-              <StatusIcon size={14} weight="fill" />
-              {MISSION_STATUS_LABEL[mission.status] ?? mission.status}
-            </span>
-            {mission.uses_board && (
-              <span className="worlds-pill">
-                <PencilLine size={14} weight="fill" />
-                Pizarra
-              </span>
-            )}
+            <WorldsStatusPill kind="mission" value={mission.status} />
+            {mission.uses_board ? <WorldsBoardPill /> : null}
           </div>
         </div>
         <div className="study-header-actions">

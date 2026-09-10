@@ -1,8 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { PencilLine, Plus, Rocket } from '@phosphor-icons/react'
 import { TextAreaField, TextField } from '../ui/Field'
-import { WorldsIconBadge } from './WorldsIconBadge'
+import { WorldsModalShell } from './WorldsModalShell'
 import { errorMessage } from '../../lib/errors'
 
 interface Props {
@@ -53,35 +52,15 @@ export function CreateMissionModal({ open, onClose, onCreate }: Props) {
   }
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="modal-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            className="modal-panel"
-            role="dialog"
-            aria-labelledby="create-mission-title"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.22 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-panel-header worlds-modal-header">
-              <WorldsIconBadge icon={Rocket} size="lg" />
-              <div>
-                <h2 id="create-mission-title">Nueva misión</h2>
-                <p className="lede">
-                  Un tema para estudiar con el tutor. Luego podrás desafiarlo.
-                </p>
-              </div>
-            </div>
-            <form className="modal-panel-body" onSubmit={(e) => void onSubmit(e)}>
+    <WorldsModalShell
+      open={open}
+      onClose={onClose}
+      titleId="create-mission-title"
+      title="Nueva misión"
+      lead="Un tema para estudiar con el tutor. Luego podrás desafiarlo."
+      icon={Rocket}
+    >
+      <form className="modal-panel-body" onSubmit={(e) => void onSubmit(e)}>
               <TextField
                 label="Título"
                 value={title}
@@ -123,9 +102,6 @@ export function CreateMissionModal({ open, onClose, onCreate }: Props) {
                 </button>
               </div>
             </form>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </WorldsModalShell>
   )
 }

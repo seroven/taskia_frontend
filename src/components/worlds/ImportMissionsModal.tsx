@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { DownloadSimple, PencilLine } from '@phosphor-icons/react'
+import { DownloadSimple } from '@phosphor-icons/react'
 import { api } from '../../api'
-import { WorldsIconBadge } from './WorldsIconBadge'
+import { WorldsBoardPill } from './WorldsStatusPill'
+import { WorldsModalShell } from './WorldsModalShell'
 import { errorMessage } from '../../lib/errors'
 import type { ImportableMission } from '../../lib/worldsTypes'
 
@@ -67,34 +67,15 @@ export function ImportMissionsModal({
   }
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="modal-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            className="modal-panel modal-panel-wide"
-            role="dialog"
-            aria-labelledby="import-missions-title"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.22 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-panel-header worlds-modal-header">
-              <WorldsIconBadge icon={DownloadSimple} size="lg" />
-              <div>
-                <h2 id="import-missions-title">Traer misiones</h2>
-                <p className="lede">
-                  Copia temas de otros mundos (mismo curso). El progreso empieza de cero.
-                </p>
-              </div>
-            </div>
+    <WorldsModalShell
+      open={open}
+      onClose={onClose}
+      titleId="import-missions-title"
+      title="Traer misiones"
+      lead="Copia temas de otros mundos (mismo curso). El progreso empieza de cero."
+      icon={DownloadSimple}
+      wide
+    >
             <div className="modal-panel-body">
               {loading && <p className="muted">Buscando misiones…</p>}
               {!loading && items.length === 0 && (
@@ -112,12 +93,7 @@ export function ImportMissionsModal({
                       <span>
                         <strong>{item.title}</strong>
                         <span className="muted"> · {item.world_title}</span>
-                        {item.uses_board && (
-                          <span className="worlds-pill">
-                            <PencilLine size={14} weight="fill" />
-                            Pizarra
-                          </span>
-                        )}
+                        {item.uses_board ? <WorldsBoardPill /> : null}
                       </span>
                     </label>
                   </li>
@@ -139,9 +115,6 @@ export function ImportMissionsModal({
                 </button>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </WorldsModalShell>
   )
 }

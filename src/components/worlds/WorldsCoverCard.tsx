@@ -12,6 +12,7 @@ export function WorldsCoverCard({
   hint,
   tags,
   status,
+  overlayAction,
   onClick,
 }: {
   kind: CoverKind
@@ -21,9 +22,10 @@ export function WorldsCoverCard({
   hint: string
   tags?: ReactNode
   status?: string
+  overlayAction?: ReactNode
   onClick: () => void
 }) {
-  return (
+  const card = (
     <button
       type="button"
       className={`worlds-cover worlds-cover--${kind}${status ? ` worlds-cover--${status}` : ''}`}
@@ -42,4 +44,8 @@ export function WorldsCoverCard({
       <span className="worlds-cover-cta">{hint}</span>
     </button>
   )
+
+  if (!overlayAction) return card
+
+  return <div className="worlds-cover-wrap">{card}{overlayAction}</div>
 }

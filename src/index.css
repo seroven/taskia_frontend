@@ -2800,16 +2800,6 @@ button.ghost.worlds-back {
   margin: 0;
 }
 
-.worlds-tile-grid {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-  gap: 14px;
-  width: 100%;
-}
-
 .worlds-cover-grid {
   list-style: none;
   margin: 0;
@@ -3011,84 +3001,6 @@ button.ghost.worlds-back {
   border-radius: 999px;
 }
 
-.worlds-tile-stack {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-}
-
-.worlds-tile {
-  width: 100%;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
-  border-radius: calc(var(--radius) + 8px);
-  border: 2px solid transparent;
-  background: var(--panel);
-  color: inherit;
-  cursor: pointer;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--ink) 6%, transparent);
-  transition:
-    border-color 0.18s ease,
-    transform 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
-  min-height: 84px;
-}
-
-.worlds-tile--card {
-  min-height: 96px;
-}
-
-.worlds-tile:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent-soft) 70%, var(--panel));
-  transform: translateY(-3px) scale(1.01);
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--accent-glow) 55%, transparent);
-}
-
-.worlds-tile:active {
-  transform: translateY(0) scale(1);
-}
-
-.worlds-tile-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-
-.worlds-tile-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.18rem;
-  line-height: 1.25;
-}
-
-.worlds-tile-desc {
-  font-size: 0.92rem;
-  line-height: 1.35;
-}
-
-.worlds-tile-hint {
-  margin-top: 4px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: var(--accent);
-  letter-spacing: 0.02em;
-}
-
-.worlds-tile--mission {
-  align-items: flex-start;
-}
-
 .worlds-icon-badge {
   display: inline-flex;
   align-items: center;
@@ -3160,71 +3072,11 @@ button.ghost.worlds-back {
   max-width: 26rem;
 }
 
-.worlds-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.worlds-row {
-  width: 100%;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: inherit;
-  cursor: pointer;
-  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
-}
-
-.worlds-row:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.worlds-row-title {
-  font-weight: 800;
-  font-size: 1.05rem;
-}
-
-.worlds-row-desc {
-  font-size: 0.9rem;
-}
-
 .worlds-row-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 4px;
-}
-
-.worlds-mission-row {
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
-}
-
-.worlds-row-mission {
-  flex: 1;
-}
-
-.worlds-mission-challenge {
-  flex-shrink: 0;
-  align-self: stretch;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 56px;
-  padding-inline: 14px;
-  border-radius: calc(var(--radius) + 8px);
 }
 
 .worlds-cta-btn {
@@ -3253,10 +3105,6 @@ button.ghost.worlds-back {
 
 .worlds-cta-btn:active:not(:disabled) {
   transform: translateY(0);
-}
-
-.worlds-mission-challenge.worlds-cta-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
 }
 
 .worlds-pill,
@@ -4227,17 +4075,9 @@ button.ghost.worlds-back {
     grid-template-columns: 1fr;
   }
 
-  .worlds-tile-grid {
-    grid-template-columns: 1fr;
-  }
-
   .worlds-cover-grid,
   .worlds-panel .worlds-cover-grid {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
-  }
-
-  .worlds-mission-row {
-    flex-direction: row;
   }
 
   .worlds-content {

@@ -1,16 +1,16 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ArrowLeft,
   CaretLeft,
-  CheckCircle,
   PaperPlaneTilt,
   Trophy,
-  XCircle,
 } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
+import { ChallengeReviewAnswersList } from '../../components/worlds/ChallengeReviewAnswersList'
+import { WorldsHero } from '../../components/worlds/WorldsHero'
 import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
+import { WorldsNav } from '../../components/worlds/WorldsNav'
 import { challengeDifficultyIcon } from '../../components/worlds/worldsIcons'
 import { errorMessage } from '../../lib/errors'
 import type { StudyBoardScene } from '../../lib/studyProtocol'
@@ -20,45 +20,11 @@ import {
   type ChallengeDetail,
   type ChallengeQuestionPublic,
 } from '../../lib/worldsTypes'
-import { AppearanceTools } from '../../components/AppearanceTools'
-import { ExpandIconButton } from '../../components/ExpandIconButton'
 import { useTheme } from '../../theme'
 
 interface Props {
   challengeId: number
   onBack: () => void
-}
-
-function formatUserAnswer(q: ChallengeQuestionPublic, raw: string | null | undefined) {
-  const text = (raw ?? q.user_answer ?? '').trim()
-  if (!text) return '—'
-  if (q.kind === 'multiple_choice' && q.options && /^[A-D]$/i.test(text)) {
-    const idx = text.toUpperCase().charCodeAt(0) - 65
-    const opt = q.options[idx]
-    return opt ? `${text.toUpperCase()}. ${opt}` : text.toUpperCase()
-  }
-  return text
-}
-
-function isBoardQuestion(q: ChallengeQuestionPublic) {
-  return q.kind === 'board_prompt' || q.requires_board
-}
-
-function formatSaidAnswer(q: ChallengeQuestionPublic) {
-  if (isBoardQuestion(q)) {
-    const extra = (q.user_answer ?? '').trim()
-    if (!extra || extra.startsWith('{') || extra.startsWith('[')) return 'Lo dibujaste'
-    return `Lo dibujaste. ${extra}`
-  }
-  return formatUserAnswer(q, q.user_answer)
-}
-
-function formatExpectedAnswer(q: ChallengeQuestionPublic) {
-  if (isBoardQuestion(q)) {
-    const expected = (q.correct_answer ?? '').trim()
-    return expected || '—'
-  }
-  return formatUserAnswer(q, q.correct_answer)
 }
 
 function reviewCheer(correct: number, total: number) {
@@ -288,15 +254,11 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   if (error && !detail) {
     return (
       <div className="worlds-shell">
-        <nav className="worlds-nav">
-          <ExpandIconButton
-            className="worlds-back"
-            icon={ArrowLeft}
-            label="Volver"
-            weight="bold"
-            onClick={() => void leaveChallenge()}
-          />
-        </nav>
+        <WorldsNav
+          backLabel="Volver"
+          onBack={() => void leaveChallenge()}
+          showAppearance={false}
+        />
         <p className="form-error banner">{error}</p>
       </div>
     )
@@ -320,18 +282,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
 
     return (
       <div className="worlds-shell challenge-review">
-        <nav className="worlds-nav">
-          <ExpandIconButton
-            className="worlds-back"
-            icon={ArrowLeft}
-            label="Volver"
-            weight="bold"
-            onClick={onBack}
-          />
-          <div className="worlds-nav-tools">
-            <AppearanceTools />
-          </div>
-        </nav>
+        <WorldsNav backLabel="Volver" onBack={onBack} />
 
         <div className="worlds-content worlds-stage challenge-review-layout">
           <motion.div
@@ -389,87 +340,11 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
 
           <section className="challenge-review-answers-panel" aria-label="Preguntas">
             <div className="challenge-review-scroll">
-              <ul className="worlds-review-list">
-                {detail.questions.map((q, index) => {
-                  const ok = Boolean(q.is_correct)
-                  const prevCourse =
-                    index > 0 ? detail.questions[index - 1]?.course_name : null
-                  const showCourse =
-                    detail.challenge.scope === 'world' &&
-                    Boolean(q.course_name) &&
-                    q.course_name !== prevCourse
-                  const isMc =
-                    q.kind === 'multiple_choice' &&
-                    Boolean(q.options && q.options.length >= 2)
-                  return (
-                    <Fragment key={q.id}>
-                      {showCourse && (
-                        <li className="worlds-review-course-row">
-                          {q.course_name}
-                        </li>
-                      )}
-                      <li
-                        id={`review-q-${q.id}`}
-                        className={`worlds-review-item${ok ? ' is-ok' : ' is-bad'}`}
-                      >
-                      <div className="worlds-review-head">
-                        <span
-                          className={`worlds-review-badge${ok ? ' is-ok' : ' is-bad'}`}
-                          aria-hidden
-                        >
-                          {ok ? (
-                            <CheckCircle size={20} weight="fill" />
-                          ) : (
-                            <XCircle size={20} weight="fill" />
-                          )}
-                        </span>
-                        <span className="worlds-review-num">{index + 1}</span>
-                        <p className="worlds-review-prompt">{q.prompt}</p>
-                      </div>
-                      <div className="worlds-review-miss">
-                        <p className="worlds-review-yours">
-                          Dijiste: <strong>{formatSaidAnswer(q)}</strong>
-                        </p>
-                        {isMc ? (
-                          <ul className="worlds-review-options">
-                            {q.options!.map((opt, i) => {
-                              const letter = String.fromCharCode(65 + i)
-                              const picked =
-                                (q.user_answer ?? '').trim().toUpperCase() ===
-                                letter
-                              const correctKey = (
-                                q.correct_answer ?? ''
-                              ).trim()
-                              const isCorrect =
-                                correctKey.toUpperCase().startsWith(letter) ||
-                                correctKey === opt
-                              return (
-                                <li
-                                  key={opt + i}
-                                  className={`worlds-review-option${isCorrect ? ' is-correct' : ''}${picked ? ' is-picked' : ''}`}
-                                >
-                                  <strong>{letter}</strong>
-                                  <span>{opt.replace(/^[A-D][).:\-]\s*/i, '')}</span>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        ) : (
-                          <p
-                            className={`worlds-review-right${ok ? ' is-ok' : ''}`}
-                          >
-                            {isBoardQuestion(q)
-                              ? 'Se esperaba: '
-                              : 'La respuesta era: '}
-                            <strong>{formatExpectedAnswer(q)}</strong>
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                    </Fragment>
-                  )
-                })}
-              </ul>
+              <ChallengeReviewAnswersList
+                questions={detail.questions}
+                scope={detail.challenge.scope}
+                itemIdPrefix="review-q-"
+              />
             </div>
           </section>
           </motion.div>
@@ -481,15 +356,11 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   if (!detail || !current) {
     return (
       <div className="worlds-shell">
-        <nav className="worlds-nav">
-          <ExpandIconButton
-            className="worlds-back"
-            icon={ArrowLeft}
-            label="Volver"
-            weight="bold"
-            onClick={() => void leaveChallenge()}
-          />
-        </nav>
+        <WorldsNav
+          backLabel="Volver"
+          onBack={() => void leaveChallenge()}
+          showAppearance={false}
+        />
         <p className="muted worlds-center-text">No hay más preguntas.</p>
       </div>
     )
@@ -507,18 +378,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
 
   return (
     <div className="worlds-shell challenge-play">
-      <nav className="worlds-nav">
-        <ExpandIconButton
-          className="worlds-back"
-          icon={ArrowLeft}
-          label="Salir"
-          weight="bold"
-          onClick={() => void leaveChallenge()}
-        />
-        <div className="worlds-nav-tools">
-          <AppearanceTools />
-        </div>
-      </nav>
+      <WorldsNav backLabel="Salir" onBack={() => void leaveChallenge()} />
 
       <div className="worlds-content worlds-stage">
         <motion.div
@@ -527,14 +387,17 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
         >
-        <header className="worlds-hero worlds-hero--compact">
-          <WorldsIconBadge icon={DiffIcon} size="lg" />
-          <h1 className="worlds-hero-title">Desafío</h1>
-          <p className="worlds-hero-lead">
-            {DIFFICULTY_LABEL[detail.challenge.difficulty] ?? detail.challenge.difficulty} ·{' '}
-            {progress.label}
-          </p>
-        </header>
+        <WorldsHero
+          compact
+          icon={DiffIcon}
+          title="Desafío"
+          lead={
+            <>
+              {DIFFICULTY_LABEL[detail.challenge.difficulty] ?? detail.challenge.difficulty} ·{' '}
+              {progress.label}
+            </>
+          }
+        />
 
         <div className="challenge-play-body">
           <div
