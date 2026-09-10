@@ -121,12 +121,12 @@ export function ChallengeSetupModal({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-panel-header worlds-modal-header">
-              <WorldsIconBadge icon={Trophy} size="lg" tone="warn" />
+              <WorldsIconBadge icon={Trophy} size="lg" />
               <div>
                 <h2 id="challenge-setup-title">Nuevo desafío</h2>
                 <p className="lede">
                   {title ? `Alcance: ${title}. ` : ''}
-                  Sin pistas del tutor: respondes y pasas a la siguiente.
+                  Sin pistas del tutor: puedes volver a preguntas anteriores y cambiar tu respuesta.
                 </p>
               </div>
             </div>

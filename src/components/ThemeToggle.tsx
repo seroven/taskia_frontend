@@ -1,26 +1,18 @@
-import { motion } from 'framer-motion'
+import { Moon, Sun } from '@phosphor-icons/react'
 import { useTheme } from '../theme'
+import { ExpandIconButton } from './ExpandIconButton'
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'dark'
 
   return (
-    <motion.button
-      type="button"
-      className="theme-toggle"
-      onClick={toggleTheme}
-      aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+    <ExpandIconButton
+      icon={isDark ? Sun : Moon}
+      label={isDark ? 'Claro' : 'Oscuro'}
       title={isDark ? 'Modo claro' : 'Modo oscuro'}
-      whileTap={{ scale: 0.92 }}
-      whileHover={{ scale: 1.05 }}
-    >
-      <span className="theme-toggle-icon" aria-hidden>
-        {isDark ? '☀️' : '🌙'}
-      </span>
-      <span className="theme-toggle-label">
-        {isDark ? 'Claro' : 'Oscuro'}
-      </span>
-    </motion.button>
+      aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      onClick={toggleTheme}
+    />
   )
 }

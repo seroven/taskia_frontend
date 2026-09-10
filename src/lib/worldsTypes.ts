@@ -26,6 +26,28 @@ export interface StudyWorldCourse {
   course_id: number
   course_name: string
   sort_order: number
+  mission_count?: number
+  mastered_count?: number
+  studying_count?: number
+  pending_count?: number
+}
+
+export type CourseProgress = 'empty' | 'pending' | 'studying' | 'mastered'
+
+export const COURSE_PROGRESS_LABEL: Record<CourseProgress, string> = {
+  empty: 'Sin temas',
+  pending: 'Sin empezar',
+  studying: 'En proceso',
+  mastered: 'Completado',
+}
+
+export function courseProgress(course: StudyWorldCourse): CourseProgress {
+  const total = course.mission_count ?? 0
+  if (total === 0) return 'empty'
+  const mastered = course.mastered_count ?? 0
+  if (mastered >= total) return 'mastered'
+  if ((course.studying_count ?? 0) > 0 || mastered > 0) return 'studying'
+  return 'pending'
 }
 
 export interface StudyMission {
@@ -98,6 +120,8 @@ export interface StudyChallenge {
   scope: ChallengeScope | string
   mission_id: number | null
   course_id: number | null
+  course_name?: string | null
+  mission_title?: string | null
   difficulty: ChallengeDifficulty | string
   question_count: number
   status: ChallengeStatus | string
@@ -116,6 +140,8 @@ export interface ChallengePreset {
 export interface ChallengeQuestionPublic {
   id: number
   mission_id: number | null
+  course_id?: number | null
+  course_name?: string | null
   sort_order: number
   kind: ChallengeQuestionKind | string
   prompt: string
@@ -154,7 +180,19 @@ export const DIFFICULTY_LABEL: Record<string, string> = {
 }
 
 export const SCOPE_LABEL: Record<string, string> = {
-  mission: 'Misión',
-  course: 'Materia',
-  world: 'Mundo',
+  mission: 'Tema',
+  course: 'Curso',
+  world: 'Global',
+}
+
+export function challengeHistoryTitle(ch: {
+  scope: ChallengeScope | string
+  course_name?: string | null
+  mission_title?: string | null
+}): string {
+  if (ch.scope === 'world') return 'Todo el mundo'
+  if (ch.scope === 'course') {
+    return ch.course_name ? ch.course_name : 'Todo el curso'
+  }
+  return ch.mission_title ? ch.mission_title : 'Tema'
 }

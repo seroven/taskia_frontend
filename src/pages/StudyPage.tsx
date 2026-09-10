@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { BookOpenText, PencilLine } from '@phosphor-icons/react'
 import { api } from '../api'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../components/study/ExcalidrawBoard'
+import { StudyBoardPane } from '../components/study/StudyBoardPane'
 import { StudyChat } from '../components/study/StudyChat'
 import { TaskEditPanel } from '../components/study/TaskEditPanel'
 import { errorMessage } from '../lib/errors'
@@ -16,6 +18,7 @@ import { useTheme } from '../theme'
 import { useToast } from '../toast'
 import {
   canOpenStudyMode,
+  taskStudyPatch,
   type Course,
   type Difficulty,
   type Task,
@@ -42,6 +45,8 @@ export function StudyPage({ taskId, onBack }: Props) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [chatError, setChatError] = useState<string | null>(null)
+  const [togglingBoard, setTogglingBoard] = useState(false)
+  const [boardOpen, setBoardOpen] = useState(false)
   const boardRef = useRef<ExcalidrawBoardHandle>(null)
   const saveBoardRef = useRef<(scene: StudyBoardScene) => void>(() => {})
 
@@ -143,6 +148,68 @@ export function StudyPage({ taskId, onBack }: Props) {
     }
   }
 
+  async function applyUsesBoard(next: boolean) {
+    if (!task) return
+    const updated = await api.updateTask(
+      taskStudyPatch(task, {
+        uses_board: next,
+        study_mode_chosen: true,
+      }),
+    )
+    if (next) {
+      const session = await api.studyLoadSession(taskId)
+      setBoard(session.board)
+      setBoardReady(true)
+    } else {
+      setBoardOpen(false)
+    }
+    setTask(updated)
+    return updated
+  }
+
+  async function onToggleBoard() {
+    if (!task || togglingBoard) return
+    const next = !task.uses_board
+    setTogglingBoard(true)
+    setChatError(null)
+    try {
+      await applyUsesBoard(next)
+      showToast({
+        tone: 'success',
+        title: next ? '¡Pizarra lista!' : 'Ahora solo charlamos',
+        subtitle: next
+          ? 'Ya puedes dibujar junto al tutor.'
+          : 'Si quieres dibujar después, toca “Ver pizarra”.',
+      })
+    } catch (err) {
+      showToast({
+        tone: 'error',
+        title: 'No se pudo cambiar',
+        subtitle: errorMessage(err),
+      })
+    } finally {
+      setTogglingBoard(false)
+    }
+  }
+
+  async function onOpenMobileBoard() {
+    if (!task || togglingBoard) return
+    setTogglingBoard(true)
+    setChatError(null)
+    try {
+      if (!task.uses_board) await applyUsesBoard(true)
+      setBoardOpen(true)
+    } catch (err) {
+      showToast({
+        tone: 'error',
+        title: 'No se pudo abrir la pizarra',
+        subtitle: errorMessage(err),
+      })
+    } finally {
+      setTogglingBoard(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="study-page">
@@ -170,8 +237,8 @@ export function StudyPage({ taskId, onBack }: Props) {
   return (
     <div className="study-page">
       <header className="study-header">
-        <button type="button" className="ghost" onClick={onBack}>
-          ← Tablero
+        <button type="button" className="ghost" onClick={boardOpen ? () => setBoardOpen(false) : onBack}>
+          ← {boardOpen ? 'Chat' : 'Tablero'}
         </button>
         <div className="study-header-main">
           <h1>{task.title}</h1>
@@ -186,21 +253,54 @@ export function StudyPage({ taskId, onBack }: Props) {
             )}
           </div>
         </div>
-        <div className="study-mode-toggle" role="group" aria-label="Modo">
-          <button
-            type="button"
-            className={mode === 'study' ? 'active' : ''}
-            onClick={() => setMode('study')}
-          >
-            Estudiar
-          </button>
-          <button
-            type="button"
-            className={mode === 'edit' ? 'active' : ''}
-            onClick={() => setMode('edit')}
-          >
-            Editar
-          </button>
+        <div className="study-header-actions">
+          {mode === 'study' && (
+            <>
+              <button
+                type="button"
+                className="ghost study-board-switch study-board-switch--mobile"
+                disabled={togglingBoard}
+                onClick={() => void onOpenMobileBoard()}
+              >
+                <PencilLine size={16} weight="fill" />
+                Ver pizarra
+              </button>
+              <button
+                type="button"
+                className="ghost study-board-switch study-board-switch--desktop"
+                disabled={togglingBoard}
+                onClick={() => void onToggleBoard()}
+              >
+                {task.uses_board ? (
+                  <>
+                    <BookOpenText size={16} weight="fill" />
+                    Quitar pizarra
+                  </>
+                ) : (
+                  <>
+                    <PencilLine size={16} weight="fill" />
+                    Ver pizarra
+                  </>
+                )}
+              </button>
+            </>
+          )}
+          <div className="study-mode-toggle" role="group" aria-label="Modo">
+            <button
+              type="button"
+              className={mode === 'study' ? 'active' : ''}
+              onClick={() => setMode('study')}
+            >
+              Estudiar
+            </button>
+            <button
+              type="button"
+              className={mode === 'edit' ? 'active' : ''}
+              onClick={() => setMode('edit')}
+            >
+              Editar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -219,7 +319,15 @@ export function StudyPage({ taskId, onBack }: Props) {
               courses={courses}
               difficulties={difficulties}
               onSave={async (input) => {
-                const updated = await api.updateTask(input)
+                const updated = await api.updateTask({
+                  ...input,
+                  study_mode_chosen: true,
+                })
+                if (updated.uses_board) {
+                  const session = await api.studyLoadSession(taskId)
+                  setBoard(session.board)
+                  setBoardReady(true)
+                }
                 setTask(updated)
                 if (!canOpenStudyMode(updated)) {
                   onBack()
@@ -247,17 +355,17 @@ export function StudyPage({ taskId, onBack }: Props) {
               boardControls={task.uses_board}
             />
             {task.uses_board && (
-              <div className="study-board-pane">
+              <StudyBoardPane open={boardOpen} onClose={() => setBoardOpen(false)}>
                 {boardReady && (
                   <ExcalidrawBoard
-                    key={`board-${task.id}-${theme}`}
+                    key={`board-${task.id}-${theme}-${task.uses_board}`}
                     ref={boardRef}
                     initialBoard={board}
                     onSave={onBoardSave}
                     theme={theme}
                   />
                 )}
-              </div>
+              </StudyBoardPane>
             )}
           </motion.div>
         )}

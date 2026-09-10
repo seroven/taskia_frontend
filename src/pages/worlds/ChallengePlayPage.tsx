@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft,
+  CaretLeft,
   CheckCircle,
   PaperPlaneTilt,
   Trophy,
@@ -18,8 +20,8 @@ import {
   type ChallengeDetail,
   type ChallengeQuestionPublic,
 } from '../../lib/worldsTypes'
-import { AccentPicker } from '../../components/AccentPicker'
-import { ThemeToggle } from '../../components/ThemeToggle'
+import { AppearanceTools } from '../../components/AppearanceTools'
+import { ExpandIconButton } from '../../components/ExpandIconButton'
 import { useTheme } from '../../theme'
 
 interface Props {
@@ -67,6 +69,22 @@ function reviewCheer(correct: number, total: number) {
   return '¡Seguí practicando!'
 }
 
+const EMPTY_BOARD: StudyBoardScene = {
+  type: 'excalidraw',
+  version: 2,
+  source: 'taskia',
+  elements: [],
+  appState: { viewBackgroundColor: '#ffffff' },
+  files: {},
+}
+
+function asBoardScene(raw: unknown): StudyBoardScene {
+  if (raw && typeof raw === 'object' && 'elements' in raw) {
+    return raw as StudyBoardScene
+  }
+  return EMPTY_BOARD
+}
+
 export function ChallengePlayPage({ challengeId, onBack }: Props) {
   const { theme } = useTheme()
   const [detail, setDetail] = useState<ChallengeDetail | null>(null)
@@ -75,19 +93,12 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   const [answer, setAnswer] = useState('')
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [grading, setGrading] = useState(false)
   const [cursor, setCursor] = useState(0)
   const [pending, setPending] = useState<Record<number, ChallengeAnswerPayload>>({})
   const [showResult, setShowResult] = useState(false)
   const boardRef = useRef<ExcalidrawBoardHandle>(null)
   const abandonedRef = useRef(false)
-  const [boardScene] = useState<StudyBoardScene>({
-    type: 'excalidraw',
-    version: 2,
-    source: 'taskia',
-    elements: [],
-    appState: { viewBackgroundColor: '#ffffff' },
-    files: {},
-  })
 
   const isCompleted =
     showResult || detail?.challenge.status === 'completed'
@@ -132,20 +143,71 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   const progress = useMemo(() => {
     const total = questions.length
     const answeredLocal = Object.keys(pending).length
-    const currentIndex = showResult
-      ? total
-      : Math.min(answeredLocal + (current ? 1 : 0), total)
     return {
       answered: answeredLocal,
       total,
-      currentIndex,
-      ratio: total > 0 ? currentIndex / total : 0,
+      currentIndex: showResult ? total : Math.min(cursor + 1, total),
+      ratio: total > 0 ? (cursor + 1) / total : 0,
       label: total > 0 ? `${Math.min(cursor + 1, total)}/${total}` : '0/0',
     }
-  }, [questions.length, pending, current, cursor, showResult])
+  }, [questions.length, pending, cursor, showResult])
+
+  function applySaved(
+    q: ChallengeQuestionPublic,
+    saved?: ChallengeAnswerPayload,
+  ) {
+    if (!saved) {
+      setAnswer('')
+      setSelectedOption(null)
+      return
+    }
+    if (q.kind === 'multiple_choice' && q.options && q.options.length >= 2) {
+      setSelectedOption(saved.user_answer)
+      setAnswer('')
+      return
+    }
+    setSelectedOption(null)
+    setAnswer(
+      saved.user_answer === '(respuesta en pizarra)' ? '' : saved.user_answer,
+    )
+  }
+
+  function captureCurrent(): ChallengeAnswerPayload | null {
+    if (!current) return null
+    const isMc =
+      current.kind === 'multiple_choice' &&
+      Boolean(current.options && current.options.length >= 2)
+    if (isMc) {
+      if (!selectedOption) return pending[current.id] ?? null
+      return { question_id: current.id, user_answer: selectedOption }
+    }
+    if (current.requires_board || current.kind === 'board_prompt') {
+      const boardJson =
+        boardRef.current?.getScene() ?? pending[current.id]?.board_json
+      const note = answer.trim()
+      if (!note && !boardJson) return pending[current.id] ?? null
+      return {
+        question_id: current.id,
+        user_answer: note || '(respuesta en pizarra)',
+        board_json: boardJson,
+      }
+    }
+    if (!answer.trim()) return pending[current.id] ?? null
+    return { question_id: current.id, user_answer: answer.trim() }
+  }
+
+  function goTo(index: number) {
+    if (!current || submitting || grading || index < 0 || index >= questions.length) return
+    const snap = captureCurrent()
+    const nextPending = snap ? { ...pending, [current.id]: snap } : pending
+    if (snap) setPending(nextPending)
+    applySaved(questions[index]!, nextPending[questions[index]!.id])
+    setError(null)
+    setCursor(index)
+  }
 
   async function onSubmit() {
-    if (!current || submitting || !detail) return
+    if (!current || submitting || grading || !detail) return
     setSubmitting(true)
     setError(null)
     try {
@@ -181,20 +243,25 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
         },
       }
       setPending(nextPending)
-      setAnswer('')
-      setSelectedOption(null)
 
       if (!isLast) {
+        const nextQ = questions[cursor + 1]
+        if (nextQ) applySaved(nextQ, nextPending[nextQ.id])
         setCursor((c) => c + 1)
         return
       }
 
-      // Una sola petición al final: corrección + guardado
-      const payload = questions.map((q) => {
-        const saved = nextPending[q.id]
-        if (!saved) throw new Error('Faltan respuestas')
-        return saved
-      })
+      const missing = questions.find((q) => !nextPending[q.id])
+      if (missing) {
+        const idx = questions.findIndex((q) => q.id === missing.id)
+        applySaved(questions[idx]!, nextPending[questions[idx]!.id])
+        setCursor(idx)
+        setError('Falta responder esta pregunta')
+        return
+      }
+
+      setGrading(true)
+      const payload = questions.map((q) => nextPending[q.id]!)
       const completed = await api.completeChallenge(challengeId, payload)
       setDetail(completed)
       setShowResult(true)
@@ -202,6 +269,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
       setError(errorMessage(err))
     } finally {
       setSubmitting(false)
+      setGrading(false)
     }
   }
 
@@ -209,7 +277,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     return (
       <div className="worlds-shell">
         <div className="boot-screen study-boot">
-          <WorldsIconBadge icon={Trophy} size="lg" tone="warn" />
+          <WorldsIconBadge icon={Trophy} size="lg" />
           <p className="brand">Desafío</p>
           <p className="muted">Cargando…</p>
         </div>
@@ -221,10 +289,13 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     return (
       <div className="worlds-shell">
         <nav className="worlds-nav">
-          <button type="button" className="ghost worlds-back" onClick={() => void leaveChallenge()}>
-            <ArrowLeft size={18} weight="bold" />
-            Volver
-          </button>
+          <ExpandIconButton
+            className="worlds-back"
+            icon={ArrowLeft}
+            label="Volver"
+            weight="bold"
+            onClick={() => void leaveChallenge()}
+          />
         </nav>
         <p className="form-error banner">{error}</p>
       </div>
@@ -250,17 +321,25 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     return (
       <div className="worlds-shell challenge-review">
         <nav className="worlds-nav">
-          <button type="button" className="ghost worlds-back" onClick={onBack}>
-            <ArrowLeft size={18} weight="bold" />
-            Volver
-          </button>
+          <ExpandIconButton
+            className="worlds-back"
+            icon={ArrowLeft}
+            label="Volver"
+            weight="bold"
+            onClick={onBack}
+          />
           <div className="worlds-nav-tools">
-            <AccentPicker />
-            <ThemeToggle />
+            <AppearanceTools />
           </div>
         </nav>
 
         <div className="worlds-content worlds-stage challenge-review-layout">
+          <motion.div
+            className="challenge-play-enter"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          >
           <header className="challenge-review-summary">
             <p className="challenge-review-cheer">{cheer}</p>
             <div
@@ -313,12 +392,26 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
               <ul className="worlds-review-list">
                 {detail.questions.map((q, index) => {
                   const ok = Boolean(q.is_correct)
+                  const prevCourse =
+                    index > 0 ? detail.questions[index - 1]?.course_name : null
+                  const showCourse =
+                    detail.challenge.scope === 'world' &&
+                    Boolean(q.course_name) &&
+                    q.course_name !== prevCourse
+                  const isMc =
+                    q.kind === 'multiple_choice' &&
+                    Boolean(q.options && q.options.length >= 2)
                   return (
-                    <li
-                      key={q.id}
-                      id={`review-q-${q.id}`}
-                      className={`worlds-review-item${ok ? ' is-ok' : ' is-bad'}`}
-                    >
+                    <Fragment key={q.id}>
+                      {showCourse && (
+                        <li className="worlds-review-course-row">
+                          {q.course_name}
+                        </li>
+                      )}
+                      <li
+                        id={`review-q-${q.id}`}
+                        className={`worlds-review-item${ok ? ' is-ok' : ' is-bad'}`}
+                      >
                       <div className="worlds-review-head">
                         <span
                           className={`worlds-review-badge${ok ? ' is-ok' : ' is-bad'}`}
@@ -333,23 +426,53 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                         <span className="worlds-review-num">{index + 1}</span>
                         <p className="worlds-review-prompt">{q.prompt}</p>
                       </div>
-                      {!ok && (
-                        <div className="worlds-review-miss">
-                          <p className="worlds-review-yours">
-                            Dijiste: <strong>{formatSaidAnswer(q)}</strong>
-                          </p>
-                          <p className="worlds-review-right">
-                            {isBoardQuestion(q) ? 'Se esperaba: ' : 'La respuesta era: '}
+                      <div className="worlds-review-miss">
+                        <p className="worlds-review-yours">
+                          Dijiste: <strong>{formatSaidAnswer(q)}</strong>
+                        </p>
+                        {isMc ? (
+                          <ul className="worlds-review-options">
+                            {q.options!.map((opt, i) => {
+                              const letter = String.fromCharCode(65 + i)
+                              const picked =
+                                (q.user_answer ?? '').trim().toUpperCase() ===
+                                letter
+                              const correctKey = (
+                                q.correct_answer ?? ''
+                              ).trim()
+                              const isCorrect =
+                                correctKey.toUpperCase().startsWith(letter) ||
+                                correctKey === opt
+                              return (
+                                <li
+                                  key={opt + i}
+                                  className={`worlds-review-option${isCorrect ? ' is-correct' : ''}${picked ? ' is-picked' : ''}`}
+                                >
+                                  <strong>{letter}</strong>
+                                  <span>{opt.replace(/^[A-D][).:\-]\s*/i, '')}</span>
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        ) : (
+                          <p
+                            className={`worlds-review-right${ok ? ' is-ok' : ''}`}
+                          >
+                            {isBoardQuestion(q)
+                              ? 'Se esperaba: '
+                              : 'La respuesta era: '}
                             <strong>{formatExpectedAnswer(q)}</strong>
                           </p>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </li>
+                    </Fragment>
                   )
                 })}
               </ul>
             </div>
           </section>
+          </motion.div>
         </div>
       </div>
     )
@@ -359,10 +482,13 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
     return (
       <div className="worlds-shell">
         <nav className="worlds-nav">
-          <button type="button" className="ghost worlds-back" onClick={() => void leaveChallenge()}>
-            <ArrowLeft size={18} weight="bold" />
-            Volver
-          </button>
+          <ExpandIconButton
+            className="worlds-back"
+            icon={ArrowLeft}
+            label="Volver"
+            weight="bold"
+            onClick={() => void leaveChallenge()}
+          />
         </nav>
         <p className="muted worlds-center-text">No hay más preguntas.</p>
       </div>
@@ -370,23 +496,39 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   }
 
   const DiffIcon = challengeDifficultyIcon(detail.challenge.difficulty)
+  const isWorldChallenge = detail.challenge.scope === 'world'
+  const prevCourseName =
+    cursor > 0 ? questions[cursor - 1]?.course_name : null
+  const courseJustChanged =
+    isWorldChallenge &&
+    Boolean(current.course_name) &&
+    current.course_name !== prevCourseName
+  const currentBoard = asBoardScene(pending[current.id]?.board_json)
 
   return (
     <div className="worlds-shell challenge-play">
       <nav className="worlds-nav">
-        <button type="button" className="ghost worlds-back" onClick={() => void leaveChallenge()}>
-          <ArrowLeft size={18} weight="bold" />
-          Salir
-        </button>
+        <ExpandIconButton
+          className="worlds-back"
+          icon={ArrowLeft}
+          label="Salir"
+          weight="bold"
+          onClick={() => void leaveChallenge()}
+        />
         <div className="worlds-nav-tools">
-          <AccentPicker />
-          <ThemeToggle />
+          <AppearanceTools />
         </div>
       </nav>
 
       <div className="worlds-content worlds-stage">
+        <motion.div
+          className="challenge-play-enter"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        >
         <header className="worlds-hero worlds-hero--compact">
-          <WorldsIconBadge icon={DiffIcon} size="lg" tone="warn" />
+          <WorldsIconBadge icon={DiffIcon} size="lg" />
           <h1 className="worlds-hero-title">Desafío</h1>
           <p className="worlds-hero-lead">
             {DIFFICULTY_LABEL[detail.challenge.difficulty] ?? detail.challenge.difficulty} ·{' '}
@@ -405,18 +547,31 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
           >
             <div className="worlds-progress-bar" style={{ width: `${progress.ratio * 100}%` }} />
           </div>
-          <div className="worlds-progress-steps" aria-hidden>
+          <div className="worlds-progress-steps">
             {questions.map((q, i) => {
-              const done = i < cursor || pending[q.id] != null
+              const done = pending[q.id] != null
               const active = i === cursor
               return (
-                <span
+                <button
                   key={q.id}
+                  type="button"
                   className={`worlds-progress-dot${done ? ' is-done' : ''}${active ? ' is-active' : ''}`}
+                  aria-label={`Ir a la pregunta ${i + 1}`}
+                  disabled={submitting || grading}
+                  onClick={() => goTo(i)}
                 />
               )
             })}
           </div>
+
+          {isWorldChallenge && current.course_name && (
+            <p
+              className={`challenge-course-chip${courseJustChanged ? ' is-new' : ''}`}
+            >
+              {courseJustChanged ? 'Ahora: ' : ''}
+              {current.course_name}
+            </p>
+          )}
 
           <p className="challenge-prompt">{current.prompt}</p>
 
@@ -433,7 +588,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                       type="button"
                       className={`challenge-option worlds-choice-btn${selectedOption === value ? ' is-selected' : ''}`}
                       onClick={() => setSelectedOption(value)}
-                      disabled={submitting}
+                      disabled={submitting || grading}
                     >
                       <strong className="worlds-choice-letter">{letter}</strong>
                       <span>{opt.replace(/^[A-D][).:\-]\s*/i, '')}</span>
@@ -456,7 +611,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                   ? 'Escribe tu respuesta'
                   : 'Tu respuesta'
               }
-              disabled={submitting}
+              disabled={submitting || grading}
             />
           )}
 
@@ -465,7 +620,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
               <ExcalidrawBoard
                 key={`challenge-q-${current.id}-${theme}`}
                 ref={boardRef}
-                initialBoard={boardScene}
+                initialBoard={currentBoard}
                 onSave={() => {}}
                 theme={theme}
               />
@@ -474,30 +629,68 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="Opcional: escribe una nota breve"
-                disabled={submitting}
+                disabled={submitting || grading}
               />
             </div>
           )}
 
           {error && <p className="form-error">{error}</p>}
 
-          <button
-            type="button"
-            className="primary"
-            disabled={submitting}
-            onClick={() => void onSubmit()}
-          >
-            <PaperPlaneTilt size={18} weight="fill" />
-            {submitting
-              ? isLast
-                ? 'Corrigiendo…'
-                : 'Guardando…'
-              : isLast
-                ? 'Terminar'
-                : 'Siguiente'}
-          </button>
+          <div className="challenge-play-actions">
+            <button
+              type="button"
+              className="ghost"
+              disabled={submitting || grading || cursor === 0}
+              onClick={() => goTo(cursor - 1)}
+            >
+              <CaretLeft size={18} weight="bold" />
+              Anterior
+            </button>
+            <button
+              type="button"
+              className="primary"
+              disabled={submitting || grading}
+              onClick={() => void onSubmit()}
+            >
+              <PaperPlaneTilt size={18} weight="fill" />
+              {isLast ? '¡Ya terminé!' : 'Siguiente'}
+            </button>
+          </div>
         </div>
+        </motion.div>
       </div>
+
+      <AnimatePresence>
+        {grading && (
+          <motion.div
+            className="challenge-grade-overlay"
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div
+              className="challenge-grade-card"
+              initial={{ opacity: 0, y: 12, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className="challenge-grade-orb" aria-hidden />
+              <p className="challenge-grade-title">¡Un momentito!</p>
+              <p className="challenge-grade-copy">
+                Estamos revisando tus respuestas, como un profesor amable.
+              </p>
+              <span className="study-thinking-dots challenge-grade-dots" aria-hidden>
+                <span />
+                <span />
+                <span />
+              </span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

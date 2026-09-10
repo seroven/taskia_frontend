@@ -19,7 +19,6 @@ interface Props {
     difficulty_id: number
     task_kind: TaskKind
     due_date?: string
-    uses_board: boolean
   }) => Promise<void>
 }
 
@@ -36,7 +35,6 @@ export function TaskFormModal({
   const [difficultyId, setDifficultyId] = useState('')
   const [taskKind, setTaskKind] = useState<TaskKind>('daily')
   const [dueDate, setDueDate] = useState(todayISO())
-  const [usesBoard, setUsesBoard] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -83,7 +81,6 @@ export function TaskFormModal({
         difficulty_id: Number(difficultyId),
         task_kind: taskKind,
         due_date: taskKind === 'project' ? dueDate : undefined,
-        uses_board: usesBoard,
       })
       setTitle('')
       setDescription('')
@@ -91,7 +88,6 @@ export function TaskFormModal({
       setDifficultyId('')
       setTaskKind('daily')
       setDueDate(todayISO())
-      setUsesBoard(true)
       onClose()
     } catch (err) {
       setError(errorMessage(err))
@@ -189,21 +185,6 @@ export function TaskFormModal({
                   onChange={setDueDate}
                 />
               )}
-
-              <label className="worlds-switch-row">
-                <input
-                  type="checkbox"
-                  checked={usesBoard}
-                  onChange={(e) => setUsesBoard(e.target.checked)}
-                />
-                <span>
-                  <strong>¿Usar pizarra?</strong>
-                  <span className="muted">
-                    {' '}
-                    Actívalo si vas a practicar dibujando en el modo estudio.
-                  </span>
-                </span>
-              </label>
 
               {error && <p className="form-error">{error}</p>}
             </div>

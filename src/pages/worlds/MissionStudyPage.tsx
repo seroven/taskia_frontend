@@ -9,6 +9,7 @@ import {
 } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
+import { StudyBoardPane } from '../../components/study/StudyBoardPane'
 import { StudyChat } from '../../components/study/StudyChat'
 import { TextAreaField, TextField } from '../../components/ui/Field'
 import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
@@ -42,6 +43,8 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
   const [editDescription, setEditDescription] = useState('')
   const [editUsesBoard, setEditUsesBoard] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [togglingBoard, setTogglingBoard] = useState(false)
+  const [boardOpen, setBoardOpen] = useState(false)
   const boardRef = useRef<ExcalidrawBoardHandle>(null)
   const saveBoardRef = useRef<(scene: StudyBoardScene) => void>(() => {})
 
@@ -133,14 +136,69 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
     }
   }
 
+  async function applyUsesBoard(next: boolean) {
+    if (!mission) return
+    const updated = await api.updateMission({
+      mission_id: mission.id,
+      title: mission.title,
+      description: mission.description ?? undefined,
+      uses_board: next,
+    })
+    if (updated.uses_board) {
+      const session = await api.missionLoadSession(missionId)
+      setBoard(session.board)
+      setBoardReady(true)
+    } else {
+      setBoardOpen(false)
+    }
+    setMission(updated)
+    setEditUsesBoard(updated.uses_board)
+    return updated
+  }
+
+  async function onOpenMobileBoard() {
+    if (!mission || togglingBoard) return
+    setTogglingBoard(true)
+    try {
+      if (!mission.uses_board) await applyUsesBoard(true)
+      setBoardOpen(true)
+    } catch (err) {
+      showToast({
+        tone: 'error',
+        title: 'No se pudo abrir la pizarra',
+        subtitle: errorMessage(err),
+      })
+    } finally {
+      setTogglingBoard(false)
+    }
+  }
+
+  async function onToggleBoard() {
+    if (!mission || togglingBoard) return
+    const next = !mission.uses_board
+    setTogglingBoard(true)
+    try {
+      await applyUsesBoard(next)
+      showToast({
+        tone: 'success',
+        title: next ? '¡Pizarra lista!' : 'Ahora solo charlamos',
+        subtitle: next
+          ? 'Ya puedes dibujar junto al tutor.'
+          : 'Si quieres dibujar después, toca “Ver pizarra”.',
+      })
+    } catch (err) {
+      showToast({
+        tone: 'error',
+        title: 'No se pudo cambiar',
+        subtitle: errorMessage(err),
+      })
+    } finally {
+      setTogglingBoard(false)
+    }
+  }
+
   async function onSaveEdit() {
     if (!mission) return
-    if (editUsesBoard !== mission.uses_board && mission.status !== 'pending') {
-      const ok = window.confirm(
-        'Cambiar la pizarra no borra el progreso, pero el layout de estudio cambia. ¿Continuar?',
-      )
-      if (!ok) return
-    }
     setSavingEdit(true)
     try {
       const updated = await api.updateMission({
@@ -149,11 +207,16 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
         description: editDescription.trim() || undefined,
         uses_board: editUsesBoard,
       })
+      if (updated.uses_board) {
+        const session = await api.missionLoadSession(missionId)
+        setBoard(session.board)
+        setBoardReady(true)
+      }
       setMission(updated)
       setMode('study')
       showToast({
         tone: 'success',
-        title: 'Misión actualizada',
+        title: '¡Listo, guardamos el tema!',
         subtitle: updated.title,
       })
     } catch (err) {
@@ -210,9 +273,13 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
   return (
     <div className="study-page">
       <header className="study-header">
-        <button type="button" className="ghost" onClick={onBack}>
+        <button
+          type="button"
+          className="ghost"
+          onClick={boardOpen ? () => setBoardOpen(false) : onBack}
+        >
           <ArrowLeft size={18} weight="bold" />
-          Materia
+          {boardOpen ? 'Chat' : 'Curso'}
         </button>
         <div className="study-header-main">
           <h1>{mission.title}</h1>
@@ -230,23 +297,56 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
             )}
           </div>
         </div>
-        <div className="study-mode-toggle" role="group" aria-label="Modo">
-          <button
-            type="button"
-            className={mode === 'study' ? 'active' : ''}
-            onClick={() => setMode('study')}
-          >
-            <BookOpenText size={16} weight="fill" />
-            Estudiar
-          </button>
-          <button
-            type="button"
-            className={mode === 'edit' ? 'active' : ''}
-            onClick={() => setMode('edit')}
-          >
-            <PencilSimple size={16} weight="bold" />
-            Editar
-          </button>
+        <div className="study-header-actions">
+          {mode === 'study' && (
+            <>
+              <button
+                type="button"
+                className="ghost study-board-switch study-board-switch--mobile"
+                disabled={togglingBoard}
+                onClick={() => void onOpenMobileBoard()}
+              >
+                <PencilLine size={16} weight="fill" />
+                Ver pizarra
+              </button>
+              <button
+                type="button"
+                className="ghost study-board-switch study-board-switch--desktop"
+                disabled={togglingBoard}
+                onClick={() => void onToggleBoard()}
+              >
+                {mission.uses_board ? (
+                  <>
+                    <BookOpenText size={16} weight="fill" />
+                    Quitar pizarra
+                  </>
+                ) : (
+                  <>
+                    <PencilLine size={16} weight="fill" />
+                    Ver pizarra
+                  </>
+                )}
+              </button>
+            </>
+          )}
+          <div className="study-mode-toggle" role="group" aria-label="Modo">
+            <button
+              type="button"
+              className={mode === 'study' ? 'active' : ''}
+              onClick={() => setMode('study')}
+            >
+              <BookOpenText size={16} weight="fill" />
+              Estudiar
+            </button>
+            <button
+              type="button"
+              className={mode === 'edit' ? 'active' : ''}
+              onClick={() => setMode('edit')}
+            >
+              <PencilSimple size={16} weight="bold" />
+              Editar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -280,7 +380,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
               <span>
                 <strong className="worlds-switch-label">
                   <PencilLine size={18} weight="fill" />
-                  ¿Usar pizarra?
+                  ¿Quieres dibujar en una pizarra?
                 </strong>
               </span>
             </label>
@@ -318,17 +418,17 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
               onSend={onSend}
             />
             {mission.uses_board && (
-              <div className="study-board-pane">
+              <StudyBoardPane open={boardOpen} onClose={() => setBoardOpen(false)}>
                 {boardReady && (
                   <ExcalidrawBoard
-                    key={`mission-board-${mission.id}-${theme}`}
+                    key={`mission-board-${mission.id}-${theme}-${mission.uses_board}`}
                     ref={boardRef}
                     initialBoard={board}
                     onSave={onBoardSave}
                     theme={theme}
                   />
                 )}
-              </div>
+              </StudyBoardPane>
             )}
           </motion.div>
         )}

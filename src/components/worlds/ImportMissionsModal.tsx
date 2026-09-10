@@ -91,14 +91,14 @@ export function ImportMissionsModal({
               <div>
                 <h2 id="import-missions-title">Traer misiones</h2>
                 <p className="lede">
-                  Copia temas de otros mundos (misma materia). El progreso empieza de cero.
+                  Copia temas de otros mundos (mismo curso). El progreso empieza de cero.
                 </p>
               </div>
             </div>
             <div className="modal-panel-body">
               {loading && <p className="muted">Buscando misiones…</p>}
               {!loading && items.length === 0 && (
-                <p className="muted">No hay misiones de esta materia en otros mundos.</p>
+                <p className="muted">No hay misiones de este curso en otros mundos.</p>
               )}
               <ul className="worlds-check-list">
                 {items.map((item) => (

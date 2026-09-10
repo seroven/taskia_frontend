@@ -20,6 +20,19 @@ import type {
   StudyWorldCourse,
 } from './lib/worldsTypes'
 import type { StudyBoardScene, StudyChatResponse, StudySession } from './lib/studyProtocol'
+import type {
+  AdminCourse,
+  AdminCourseImportResult,
+  AdminDashboard,
+  AdminOverview,
+  AdminStudent,
+  AdminChallengeRow,
+  AdminStudyRow,
+  AdminTaskRow,
+  AdminWorldDetail,
+  AdminWorldTree,
+} from './lib/adminTypes'
+import { adminQuery } from './lib/adminTypes'
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(
   /\/$/,
@@ -78,12 +91,6 @@ function cleanFilters(filters: TaskFilters) {
 }
 
 export const api = {
-  register(username: string, email: string, password: string) {
-    return request<PublicUser>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ username, email, password }),
-    })
-  },
   login(username: string, password: string) {
     return request<PublicUser>('/auth/login', {
       method: 'POST',
@@ -97,6 +104,12 @@ export const api = {
   },
   currentUser() {
     return request<PublicUser>('/auth/me').catch(() => null)
+  },
+  updateMe(input: { username: string; email: string; password?: string }) {
+    return request<PublicUser>('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    })
   },
   listCourses() {
     return request<Course[]>('/courses')
@@ -131,6 +144,7 @@ export const api = {
     due_date?: string
     status: TaskStatus
     uses_board?: boolean
+    study_mode_chosen?: boolean
   }) {
     const { task_id, ...body } = input
     return request<Task>(`/tasks/${task_id}`, {
@@ -362,6 +376,164 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ answers }),
       },
+    )
+  },
+  listStudents() {
+    return request<AdminStudent[]>('/admin/students')
+  },
+  createStudent(input: { username: string; email: string; password: string }) {
+    return request<AdminStudent>('/admin/students', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+  updateStudent(
+    student_id: number,
+    input: {
+      username?: string
+      email?: string
+      password?: string
+      is_active?: boolean
+    },
+  ) {
+    return request<AdminStudent>(`/admin/students/${student_id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    })
+  },
+  listStudentCourses(student_id: number) {
+    return request<AdminCourse[]>(`/admin/students/${student_id}/courses`)
+  },
+  createStudentCourse(student_id: number, name: string) {
+    return request<AdminCourse>(`/admin/students/${student_id}/courses`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    })
+  },
+  updateStudentCourse(
+    student_id: number,
+    course_id: number,
+    input: { name?: string; is_active?: boolean },
+  ) {
+    return request<AdminCourse>(
+      `/admin/students/${student_id}/courses/${course_id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    )
+  },
+  archiveStudentCourse(student_id: number, course_id: number) {
+    return request<{ ok: boolean }>(
+      `/admin/students/${student_id}/courses/${course_id}`,
+      { method: 'DELETE' },
+    ).then(() => undefined)
+  },
+  getStudentOverview(student_id: number) {
+    return request<AdminOverview>(`/admin/students/${student_id}/overview`)
+  },
+  getAdminDashboard(
+    filters: {
+      from?: string | null
+      to?: string | null
+      student_id?: number | null
+    } = {},
+  ) {
+    return request<AdminDashboard>(
+      `/admin/dashboard${adminQuery({
+        from: filters.from,
+        to: filters.to,
+        student_id: filters.student_id,
+      })}`,
+    )
+  },
+  importStudentCourses(
+    student_id: number,
+    input: { from_student_id: number; course_ids?: number[] },
+  ) {
+    return request<AdminCourseImportResult>(
+      `/admin/students/${student_id}/courses/import`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    )
+  },
+  listAdminStudentTasks(
+    student_id: number,
+    filters: {
+      created_from?: string | null
+      created_to?: string | null
+      due_from?: string | null
+      due_to?: string | null
+      status?: string | null
+      course_id?: number | null
+    } = {},
+  ) {
+    return request<AdminTaskRow[]>(
+      `/admin/students/${student_id}/tasks${adminQuery({
+        created_from: filters.created_from,
+        created_to: filters.created_to,
+        due_from: filters.due_from,
+        due_to: filters.due_to,
+        status: filters.status,
+        course_id: filters.course_id,
+      })}`,
+    )
+  },
+  listAdminStudentStudy(
+    student_id: number,
+    filters: {
+      from?: string | null
+      to?: string | null
+      kind?: 'task' | 'mission' | null
+    } = {},
+  ) {
+    return request<AdminStudyRow[]>(
+      `/admin/students/${student_id}/study${adminQuery({
+        from: filters.from,
+        to: filters.to,
+        kind: filters.kind,
+      })}`,
+    )
+  },
+  listAdminStudentChallenges(
+    student_id: number,
+    filters: { from?: string | null; to?: string | null } = {},
+  ) {
+    return request<AdminChallengeRow[]>(
+      `/admin/students/${student_id}/challenges${adminQuery({
+        from: filters.from,
+        to: filters.to,
+      })}`,
+    )
+  },
+  getAdminStudentChallenge(student_id: number, challenge_id: number) {
+    return request<ChallengeDetail>(
+      `/admin/students/${student_id}/challenges/${challenge_id}`,
+    )
+  },
+  listAdminStudentWorlds(student_id: number) {
+    return request<AdminWorldDetail[]>(`/admin/students/${student_id}/worlds`)
+  },
+  getAdminStudentWorldsTree(
+    student_id: number,
+    filters: {
+      from?: string | null
+      to?: string | null
+      status?: string | null
+      course_id?: number | null
+      difficulty?: string | null
+    } = {},
+  ) {
+    return request<AdminWorldTree>(
+      `/admin/students/${student_id}/worlds-tree${adminQuery({
+        from: filters.from,
+        to: filters.to,
+        status: filters.status,
+        course_id: filters.course_id,
+        difficulty: filters.difficulty,
+      })}`,
     )
   },
 }

@@ -6,6 +6,7 @@ import {
   STATUS_COLUMNS,
   STUDY_PASSED_REQUIRED_MSG,
   STUDY_PASSED_REQUIRED_TITLE,
+  needsStudyPassedGate,
   todayISO,
   type Course,
   type Difficulty,
@@ -101,14 +102,13 @@ export function TaskDetailModal({
     setSubmitting(true)
     setError(null)
     try {
-      const nextDifficulty =
-        difficulties.find((item) => item.id === Number(difficultyId))?.code ??
-        task.difficulty_code
       if (
-        status === 'done' &&
-        task.status !== 'done' &&
-        nextDifficulty === 'high' &&
-        !task.study_passed
+        needsStudyPassedGate(
+          task,
+          status,
+          difficulties.find((item) => item.id === Number(difficultyId))?.code ??
+            task.difficulty_code,
+        )
       ) {
         showToast({
           title: STUDY_PASSED_REQUIRED_TITLE,

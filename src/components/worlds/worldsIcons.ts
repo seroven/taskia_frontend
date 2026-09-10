@@ -1,8 +1,10 @@
 import type { Icon, IconProps } from '@phosphor-icons/react'
 import {
   BookOpen,
+  CircleDashed,
   Flag,
   Flame,
+  GlobeHemisphereWest,
   PencilLine,
   PlayCircle,
   Rocket,
@@ -11,7 +13,12 @@ import {
   Sword,
   Trophy,
 } from '@phosphor-icons/react'
-import type { ChallengeDifficulty, MissionStatus } from '../../lib/worldsTypes'
+import type {
+  ChallengeDifficulty,
+  ChallengeScope,
+  CourseProgress,
+  MissionStatus,
+} from '../../lib/worldsTypes'
 
 export function missionStatusIcon(status: MissionStatus | string): Icon {
   switch (status) {
@@ -21,6 +28,30 @@ export function missionStatusIcon(status: MissionStatus | string): Icon {
       return SealCheck
     default:
       return Flag
+  }
+}
+
+export function courseProgressIcon(progress: CourseProgress | string): Icon {
+  switch (progress) {
+    case 'studying':
+      return PlayCircle
+    case 'mastered':
+      return SealCheck
+    case 'empty':
+      return CircleDashed
+    default:
+      return Flag
+  }
+}
+
+export function challengeScopeIcon(scope: ChallengeScope | string): Icon {
+  switch (scope) {
+    case 'world':
+      return GlobeHemisphereWest
+    case 'course':
+      return BookOpen
+    default:
+      return Rocket
   }
 }
 

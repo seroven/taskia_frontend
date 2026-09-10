@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '../types'
@@ -41,6 +42,7 @@ export function TaskCard({
   task: Task
   onOpen: (task: Task) => void
 }) {
+  const origin = useRef({ x: 0, y: 0 })
   const {
     attributes,
     listeners,
@@ -60,9 +62,21 @@ export function TaskCard({
       ref={setNodeRef}
       style={style}
       className={`task-card-shell${isDragging ? ' is-dragging' : ''}`}
-      onDoubleClick={() => onOpen(task)}
       {...attributes}
       {...listeners}
+      onPointerDown={(event) => {
+        origin.current = { x: event.clientX, y: event.clientY }
+        listeners?.onPointerDown?.(event)
+      }}
+      onClick={(event) => {
+        if (
+          Math.abs(event.clientX - origin.current.x) > 10 ||
+          Math.abs(event.clientY - origin.current.y) > 10
+        ) {
+          return
+        }
+        onOpen(task)
+      }}
     >
       <TaskCardView task={task} />
     </div>

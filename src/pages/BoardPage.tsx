@@ -25,13 +25,16 @@ import { KanbanColumn } from '../components/KanbanColumn'
 import { TaskCardView } from '../components/TaskCard'
 import { TaskDetailModal } from '../components/TaskDetailModal'
 import { TaskFormModal } from '../components/TaskFormModal'
-import { AccentPicker } from '../components/AccentPicker'
-import { ThemeToggle } from '../components/ThemeToggle'
+import { StudyBoardChoiceModal } from '../components/StudyBoardChoiceModal'
+import { AppearanceTools } from '../components/AppearanceTools'
+import { ExpandIconButton } from '../components/ExpandIconButton'
+import { SessionActions } from '../components/SessionActions'
 import {
   STATUS_COLUMNS,
   STUDY_PASSED_REQUIRED_MSG,
   STUDY_PASSED_REQUIRED_TITLE,
   canOpenStudyMode,
+  needsStudyPassedGate,
   todayISO,
   type Course,
   type Difficulty,
@@ -44,15 +47,6 @@ import { useToast } from '../toast'
 
 function isStatus(value: string | number): value is TaskStatus {
   return STATUS_COLUMNS.some((column) => column.id === value)
-}
-
-function needsStudyPassedGate(task: Task, nextStatus: TaskStatus): boolean {
-  return (
-    nextStatus === 'done' &&
-    task.status !== 'done' &&
-    task.difficulty_code === 'high' &&
-    !task.study_passed
-  )
 }
 
 const dropAnimation: DropAnimation = {
@@ -74,7 +68,7 @@ export function BoardPage({
   onOpenStudy: (task: Task) => void
   onOpenWorlds: () => void
 }) {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const { showToast } = useToast()
   const [courses, setCourses] = useState<Course[]>([])
   const [difficulties, setDifficulties] = useState<Difficulty[]>([])
@@ -93,6 +87,7 @@ export function BoardPage({
   const [error, setError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [studyChoiceTask, setStudyChoiceTask] = useState<Task | null>(null)
   const requestId = useRef(0)
 
   const sensors = useSensors(
@@ -337,23 +332,14 @@ export function BoardPage({
           <p className="welcome">¡Hola, {user?.username}! 👋</p>
         </div>
         <div className="topbar-actions">
-          <AccentPicker />
-          <ThemeToggle />
-          <button type="button" className="ghost" onClick={onOpenWorlds} disabled={loading}>
-            <GlobeHemisphereWest size={18} weight="duotone" />
-            Mundos
-          </button>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => setModalOpen(true)}
+          <AppearanceTools />
+          <ExpandIconButton
+            icon={GlobeHemisphereWest}
+            label="Mundos"
+            onClick={onOpenWorlds}
             disabled={loading}
-          >
-            Nueva tarea
-          </button>
-          <button type="button" className="ghost" onClick={() => void logout()}>
-            Salir
-          </button>
+          />
+          <SessionActions />
         </div>
       </header>
 
@@ -361,9 +347,17 @@ export function BoardPage({
         filters={filters}
         courses={courses}
         onChange={setFilters}
+        onCreateTask={() => setModalOpen(true)}
+        createDisabled={loading || courses.length === 0}
       />
 
       {error && <p className="form-error banner">{error}</p>}
+      {!loading && courses.length === 0 && (
+        <p className="admin-student-empty-banner">
+          Todavía no te asignaron cursos. Pídele a un adulto que los agregue para
+          poder crear tareas.
+        </p>
+      )}
 
       <div className={`kanban-stage${loading ? ' is-loading' : ''}`}>
         <AnimatePresence>{loading && <BoardLoader label={loaderLabel} />}</AnimatePresence>
@@ -391,8 +385,12 @@ export function BoardPage({
                 tasks={loading ? [] : grouped[column.id]}
                 highlighted={!!activeTask && overStatus === column.id}
                 onOpenTask={(task) => {
-                  if (canOpenStudyMode(task)) onOpenStudy(task)
-                  else setSelectedTask(task)
+                  if (!canOpenStudyMode(task)) {
+                    setSelectedTask(task)
+                    return
+                  }
+                  if (task.study_mode_chosen) onOpenStudy(task)
+                  else setStudyChoiceTask(task)
                 }}
               />
             ))}
@@ -422,6 +420,15 @@ export function BoardPage({
         onSave={async (input) => {
           await api.updateTask(input)
           await loadTasks(filters)
+        }}
+      />
+
+      <StudyBoardChoiceModal
+        task={studyChoiceTask}
+        onClose={() => setStudyChoiceTask(null)}
+        onReady={(task) => {
+          void loadTasks(filters)
+          onOpenStudy(task)
         }}
       />
     </div>

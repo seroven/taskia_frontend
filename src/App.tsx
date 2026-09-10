@@ -26,9 +26,16 @@ type AppView =
 
 const viewTransition = {
   initial: { opacity: 0, y: 14, scale: 0.985 },
-  animate: { opacity: 1, y: 0, scale: 1 },
+  animate: { opacity: 1, y: 0, x: 0, scale: 1 },
   exit: { opacity: 0, y: -10, scale: 0.99 },
   transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
+}
+
+const challengeTransition = {
+  initial: { opacity: 0, x: 36, scale: 0.98 },
+  animate: { opacity: 1, x: 0, y: 0, scale: 1 },
+  exit: { opacity: 0, x: -24, scale: 0.99 },
+  transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const },
 }
 
 function AppRouter() {
@@ -67,16 +74,21 @@ function AppRouter() {
               ? `challenge-${challengeId}`
               : view
 
+  const viewMotion =
+    view === 'challenge' && challengeId != null
+      ? challengeTransition
+      : viewTransition
+
   return (
     <div className="app-view-root">
       <AnimatePresence mode="wait">
         <motion.div
           key={viewKey}
           className="app-view-panel"
-          initial={viewTransition.initial}
-          animate={viewTransition.animate}
-          exit={viewTransition.exit}
-          transition={viewTransition.transition}
+          initial={viewMotion.initial}
+          animate={viewMotion.animate}
+          exit={viewMotion.exit}
+          transition={viewMotion.transition}
         >
           {view === 'study' && studyTaskId != null ? (
             <StudyPage

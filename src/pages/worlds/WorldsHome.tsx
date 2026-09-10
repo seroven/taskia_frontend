@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, GlobeHemisphereWest, Plus } from '@phosphor-icons/react'
 import { api } from '../../api'
+import { ExpandIconButton } from '../../components/ExpandIconButton'
 import { CreateWorldModal } from '../../components/worlds/CreateWorldModal'
+import { WorldsCoverCard } from '../../components/worlds/WorldsCoverCard'
 import { WorldsEmptyState } from '../../components/worlds/WorldsEmptyState'
 import { WorldsIconBadge } from '../../components/worlds/WorldsIconBadge'
-import { AccentPicker } from '../../components/AccentPicker'
-import { ThemeToggle } from '../../components/ThemeToggle'
+import { AppearanceTools } from '../../components/AppearanceTools'
 import { errorMessage } from '../../lib/errors'
 import type { StudyWorld } from '../../lib/worldsTypes'
 import { useToast } from '../../toast'
@@ -45,30 +46,36 @@ export function WorldsHome({ onBack, onOpenWorld }: Props) {
   return (
     <div className="worlds-shell">
       <nav className="worlds-nav">
-        <button type="button" className="ghost worlds-back" onClick={onBack}>
-          <ArrowLeft size={18} weight="bold" />
-          Tablero
-        </button>
+        <ExpandIconButton
+          className="worlds-back"
+          icon={ArrowLeft}
+          label="Tablero"
+          weight="bold"
+          onClick={onBack}
+        />
         <div className="worlds-nav-tools">
-          <AccentPicker />
-          <ThemeToggle />
+          <AppearanceTools />
         </div>
       </nav>
 
       {error && <p className="form-error banner">{error}</p>}
 
       <div className="worlds-content worlds-stage">
-        <header className="worlds-hero">
-          <WorldsIconBadge icon={GlobeHemisphereWest} size="xl" />
-          <h1 className="worlds-hero-title">Mundos</h1>
-          <p className="worlds-hero-lead">
-            Elige un mundo para estudiar… o crea uno nuevo.
-          </p>
+        <header className="worlds-hero worlds-hero--page">
+          <WorldsIconBadge icon={GlobeHemisphereWest} size="lg" />
+          <div className="worlds-hero-copy">
+            <h1 className="worlds-hero-title">Mundos</h1>
+            <p className="worlds-hero-lead">
+              Elige un mundo para estudiar… o crea uno nuevo.
+            </p>
+          </div>
           {worlds.length > 0 && (
-            <button type="button" className="primary" onClick={() => setModalOpen(true)}>
-              <Plus size={18} weight="bold" />
-              Nuevo mundo
-            </button>
+            <div className="worlds-hero-actions">
+              <button type="button" className="primary" onClick={() => setModalOpen(true)}>
+                <Plus size={18} weight="bold" />
+                Nuevo mundo
+              </button>
+            </div>
           )}
         </header>
 
@@ -78,7 +85,7 @@ export function WorldsHome({ onBack, onOpenWorld }: Props) {
           <WorldsEmptyState
             icon={GlobeHemisphereWest}
             title="Tu primer Mundo"
-            description="Aquí viven tus materias y misiones. Empieza con uno y listo."
+            description="Aquí viven tus cursos y misiones. Empieza con uno y listo."
             action={
               <button type="button" className="primary" onClick={() => setModalOpen(true)}>
                 <Plus size={20} weight="bold" />
@@ -89,28 +96,22 @@ export function WorldsHome({ onBack, onOpenWorld }: Props) {
         )}
 
         <AnimatePresence>
-          <ul className="worlds-tile-grid">
+          <ul className="worlds-cover-grid">
             {worlds.map((world, index) => (
               <motion.li
                 key={world.id}
-                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: Math.min(index * 0.05, 0.28), duration: 0.24 }}
+                transition={{ delay: Math.min(index * 0.05, 0.28), duration: 0.28 }}
               >
-                <button
-                  type="button"
-                  className="worlds-tile worlds-tile--card"
+                <WorldsCoverCard
+                  kind="world"
+                  icon={GlobeHemisphereWest}
+                  title={world.title}
+                  description={world.description}
+                  hint="Entrar"
                   onClick={() => onOpenWorld(world.id)}
-                >
-                  <WorldsIconBadge icon={GlobeHemisphereWest} size="lg" />
-                  <span className="worlds-tile-body">
-                    <span className="worlds-tile-title">{world.title}</span>
-                    {world.description && (
-                      <span className="worlds-tile-desc muted">{world.description}</span>
-                    )}
-                    <span className="worlds-tile-hint">Entrar</span>
-                  </span>
-                </button>
+                />
               </motion.li>
             ))}
           </ul>

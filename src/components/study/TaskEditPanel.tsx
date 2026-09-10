@@ -5,6 +5,7 @@ import {
   STATUS_COLUMNS,
   STUDY_PASSED_REQUIRED_MSG,
   STUDY_PASSED_REQUIRED_TITLE,
+  needsStudyPassedGate,
   todayISO,
   type Course,
   type Difficulty,
@@ -26,6 +27,7 @@ export type TaskEditPayload = {
   due_date?: string
   status: TaskStatus
   uses_board: boolean
+  study_mode_chosen?: boolean
 }
 
 interface Props {
@@ -77,14 +79,13 @@ export function TaskEditPanel({ task, courses, difficulties, onSave }: Props) {
     setError(null)
     setSaved(false)
     try {
-      const nextDifficulty =
-        difficulties.find((item) => item.id === Number(difficultyId))?.code ??
-        task.difficulty_code
       if (
-        status === 'done' &&
-        task.status !== 'done' &&
-        nextDifficulty === 'high' &&
-        !task.study_passed
+        needsStudyPassedGate(
+          task,
+          status,
+          difficulties.find((item) => item.id === Number(difficultyId))?.code ??
+            task.difficulty_code,
+        )
       ) {
         showToast({
           title: STUDY_PASSED_REQUIRED_TITLE,
@@ -105,6 +106,7 @@ export function TaskEditPanel({ task, courses, difficulties, onSave }: Props) {
         due_date: taskKind === 'project' ? dueDate : undefined,
         status,
         uses_board: usesBoard,
+        study_mode_chosen: true,
       })
       setSaved(true)
     } catch (err) {
@@ -195,10 +197,10 @@ export function TaskEditPanel({ task, courses, difficulties, onSave }: Props) {
           onChange={(e) => setUsesBoard(e.target.checked)}
         />
         <span>
-          <strong>¿Usar pizarra?</strong>
+          <strong>¿Quieres dibujar en una pizarra?</strong>
           <span className="muted">
             {' '}
-            Si lo desactivas, el estudio queda solo con el chat del tutor.
+            Si no, estudias solo charlando con el tutor.
           </span>
         </span>
       </label>

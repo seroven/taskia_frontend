@@ -1,3 +1,4 @@
+import { Plus } from '@phosphor-icons/react'
 import type { Course, TaskFilters } from '../types'
 import { DateField } from './ui/DateField'
 import { SelectField } from './ui/SelectField'
@@ -6,9 +7,17 @@ interface Props {
   filters: TaskFilters
   courses: Course[]
   onChange: (next: TaskFilters) => void
+  onCreateTask: () => void
+  createDisabled?: boolean
 }
 
-export function BoardFilters({ filters, courses, onChange }: Props) {
+export function BoardFilters({
+  filters,
+  courses,
+  onChange,
+  onCreateTask,
+  createDisabled = false,
+}: Props) {
   const courseOptions = [
     { value: '', label: 'Todos' },
     ...courses.map((course) => ({
@@ -67,6 +76,16 @@ export function BoardFilters({ filters, courses, onChange }: Props) {
         }
       >
         Limpiar filtros
+      </button>
+
+      <button
+        type="button"
+        className="primary filters-create"
+        onClick={onCreateTask}
+        disabled={createDisabled}
+      >
+        <Plus size={18} weight="bold" />
+        Nueva tarea
       </button>
     </div>
   )

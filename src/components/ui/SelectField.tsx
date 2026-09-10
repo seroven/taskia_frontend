@@ -14,6 +14,7 @@ import { useAnchoredPopoverStyle } from './useAnchoredPopoverStyle'
 export interface SelectOption {
   value: string
   label: string
+  keywords?: string
 }
 
 interface Props {
@@ -23,6 +24,8 @@ interface Props {
   placeholder?: string
   required?: boolean
   className?: string
+  searchable?: boolean
+  searchPlaceholder?: string
   onChange: (value: string) => void
 }
 
@@ -33,23 +36,51 @@ export function SelectField({
   placeholder = 'Selecciona…',
   required = false,
   className = '',
+  searchable = false,
+  searchPlaceholder = 'Buscar…',
   onChange,
 }: Props) {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
   const listId = useId()
+  const searchId = useId()
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return options
+    return options.filter((option) => {
+      if (!option.value) return false
+      const haystack = `${option.label} ${option.keywords ?? ''}`.toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [options, query])
   const { style, placement } = useAnchoredPopoverStyle({
     open,
     anchorRef: triggerRef,
-    estimatedHeight: Math.min(240, 48 + options.length * 48),
+    estimatedHeight: Math.min(
+      280,
+      (searchable ? 56 : 0) + 48 + Math.min(filtered.length, 6) * 48,
+    ),
   })
 
   const selected = useMemo(
     () => options.find((option) => option.value === value) ?? null,
     [options, value],
   )
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('')
+      return
+    }
+    if (searchable) {
+      const id = window.requestAnimationFrame(() => searchRef.current?.focus())
+      return () => window.cancelAnimationFrame(id)
+    }
+  }, [open, searchable])
 
   useEffect(() => {
     if (!open) return
@@ -122,7 +153,7 @@ export function SelectField({
                 ref={menuRef}
                 id={listId}
                 role="listbox"
-                className={`select-menu popover-layer placement-${placement}`}
+                className={`select-menu popover-layer placement-${placement}${searchable ? ' has-search' : ''}`}
                 style={style}
                 initial={{
                   opacity: 0,
@@ -137,24 +168,43 @@ export function SelectField({
                 }}
                 transition={{ duration: 0.16 }}
               >
-                {options.map((option) => {
-                  const active = option.value === value
-                  return (
-                    <button
-                      key={option.value || '__empty'}
-                      type="button"
-                      role="option"
-                      aria-selected={active}
-                      className={`select-option${active ? ' is-active' : ''}`}
-                      onClick={() => {
-                        onChange(option.value)
-                        setOpen(false)
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  )
-                })}
+                {searchable && (
+                  <div className="select-search">
+                    <input
+                      ref={searchRef}
+                      id={searchId}
+                      type="search"
+                      value={query}
+                      placeholder={searchPlaceholder}
+                      autoComplete="off"
+                      aria-label={searchPlaceholder}
+                      onChange={(event) => setQuery(event.target.value)}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    />
+                  </div>
+                )}
+                {filtered.length === 0 ? (
+                  <p className="select-search-empty">Sin coincidencias</p>
+                ) : (
+                  filtered.map((option) => {
+                    const active = option.value === value
+                    return (
+                      <button
+                        key={option.value || '__empty'}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        className={`select-option${active ? ' is-active' : ''}`}
+                        onClick={() => {
+                          onChange(option.value)
+                          setOpen(false)
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    )
+                  })
+                )}
               </motion.div>
             )}
           </AnimatePresence>,

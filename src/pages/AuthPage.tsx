@@ -1,19 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../auth'
-import { ThemeToggle } from '../components/ThemeToggle'
+import { AppearanceTools } from '../components/AppearanceTools'
 import { TextField, PasswordField } from '../components/ui/Field'
 import { errorMessage } from '../lib/errors'
 import { useToast } from '../toast'
 
-type Mode = 'login' | 'register'
-
 export function AuthPage() {
-  const { login, register } = useAuth()
+  const { login } = useAuth()
   const { showToast } = useToast()
-  const [mode, setMode] = useState<Mode>('login')
   const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -21,15 +17,11 @@ export function AuthPage() {
     event.preventDefault()
     setSubmitting(true)
     try {
-      if (mode === 'login') {
-        await login(username, password)
-      } else {
-        await register(username, email, password)
-      }
+      await login(username, password)
     } catch (err) {
       const detail = errorMessage(err)
       showToast({
-        title: mode === 'login' ? 'No se pudo entrar' : 'No se pudo registrar',
+        title: 'No se pudo entrar',
         subtitle: detail.length > 90 ? `${detail.slice(0, 87)}…` : detail,
         tone: 'error',
       })
@@ -41,7 +33,7 @@ export function AuthPage() {
   return (
     <div className="auth-shell">
       <div className="auth-theme-slot">
-        <ThemeToggle />
+        <AppearanceTools />
       </div>
       <motion.div
         className="auth-panel"
@@ -50,27 +42,10 @@ export function AuthPage() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <p className="brand">Taskia</p>
-        <h1>{mode === 'login' ? '¡Hola de nuevo!' : '¡Vamos a empezar!'}</h1>
+        <h1>¡Hola de nuevo!</h1>
         <p className="lede">
-          Arma tus tareas del día y muévelas por el tablero como un juego.
+          Entra con el usuario que te dio un adulto. Tus tareas y mundos te esperan.
         </p>
-
-        <div className="mode-switch" role="tablist">
-          <button
-            type="button"
-            className={mode === 'login' ? 'active' : ''}
-            onClick={() => setMode('login')}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            className={mode === 'register' ? 'active' : ''}
-            onClick={() => setMode('register')}
-          >
-            Crear cuenta
-          </button>
-        </div>
 
         <form onSubmit={(e) => void onSubmit(e)} className="auth-form">
           <TextField
@@ -81,35 +56,16 @@ export function AuthPage() {
             required
             minLength={3}
           />
-
-          {mode === 'register' && (
-            <TextField
-              label="Correo"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          )}
-
           <PasswordField
             label="Contraseña"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete={
-              mode === 'login' ? 'current-password' : 'new-password'
-            }
+            autoComplete="current-password"
             required
             minLength={6}
           />
-
           <button type="submit" className="primary" disabled={submitting}>
-            {submitting
-              ? 'Un momento…'
-              : mode === 'login'
-                ? '¡Entrar!'
-                : '¡Crear y entrar!'}
+            {submitting ? 'Un momento…' : '¡Entrar!'}
           </button>
         </form>
       </motion.div>

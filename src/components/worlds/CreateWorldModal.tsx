@@ -67,7 +67,7 @@ export function CreateWorldModal({ open, onClose, onCreate }: Props) {
               <div>
                 <h2 id="create-world-title">Nuevo mundo</h2>
                 <p className="lede">
-                  Un mundo agrupa las materias y misiones que quieres estudiar.
+                  Un mundo agrupa los cursos y misiones que quieres estudiar.
                 </p>
               </div>
             </div>
