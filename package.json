@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode development",
+    "dev:pd": "vite --mode pd",
     "build": "tsc -b && vite build",
     "build:qa": "tsc -b && vite build --mode qa",
-    "build:pd": "tsc -b && vite build --mode production",
+    "build:pd": "tsc -b && vite build --mode pd",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:pd": "vite preview --mode pd"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
