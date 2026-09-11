@@ -86,6 +86,7 @@ export interface MissionContext {
   tutor_phase: string
   topic_summary: string
   context_summary: string
+  notebook_context?: string
   hints_level: number
   messages: MissionMessage[]
 }

@@ -2077,6 +2077,33 @@ input[type='checkbox']:active:not(:disabled) {
   white-space: pre-wrap;
 }
 
+.study-voice-transcript-input {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 2px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 8rem;
+}
+
+.study-voice-transcript-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.study-voice-compose-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .challenge-play {
   position: relative;
 }

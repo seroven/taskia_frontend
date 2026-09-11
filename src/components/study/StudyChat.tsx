@@ -105,7 +105,7 @@ export function StudyChat({
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'recording' | 'transcribing'>('idle')
   const [voiceElapsed, setVoiceElapsed] = useState(0)
   const [voiceError, setVoiceError] = useState<string | null>(null)
-  const [voicePrompt, setVoicePrompt] = useState<'intro' | 'confirm' | null>(null)
+  const [voicePrompt, setVoicePrompt] = useState<'intro' | 'review' | null>(null)
   const [pendingVoiceText, setPendingVoiceText] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
   const bootstrapped = useRef(false)
@@ -203,9 +203,8 @@ export function StudyChat({
         setPendingVoiceText('')
       } else {
         setPendingVoiceText(text)
-        setDraft(text)
         setFromVoiceDraft(true)
-        setVoicePrompt('confirm')
+        setVoicePrompt('review')
         if (result.truncated) {
           setVoiceError(
             'Se cortó un poquito al final. Léelo y, si falta algo, grábala otra vez.',
@@ -252,33 +251,33 @@ export function StudyChat({
   function askToRecord() {
     if (sending || voiceBusy) return
     setVoiceError(null)
+    if (draft.trim()) {
+      void startRecording()
+      return
+    }
     setVoicePrompt('intro')
   }
 
-  async function sendPendingVoice() {
-    const text = pendingVoiceText.trim() || draft.trim()
+  function addPendingVoiceToDraft() {
+    const text = pendingVoiceText.trim()
     if (!text || sending) return
+    setDraft((prev) => {
+      const cur = prev.trim()
+      return cur ? `${cur}\n\n${text}` : text
+    })
+    setFromVoiceDraft(true)
     setVoicePrompt(null)
     setPendingVoiceText('')
-    setDraft('')
-    setFromVoiceDraft(false)
-    try {
-      await onSend(text, {
-        includeBoard: false,
-        allowAiDraw: false,
-        fromVoice: true,
-      })
-    } catch {
-      setDraft(text)
-      setFromVoiceDraft(true)
-    }
+  }
+
+  function dismissVoiceReview() {
+    setVoicePrompt(null)
+    setPendingVoiceText('')
   }
 
   function redoVoice() {
     setVoicePrompt(null)
     setPendingVoiceText('')
-    setDraft('')
-    setFromVoiceDraft(false)
     setVoiceError(null)
     void startRecording()
   }
@@ -404,7 +403,7 @@ export function StudyChat({
       </div>
       </div>
 
-      {(error || (voiceError && voicePrompt !== 'confirm')) && (
+      {(error || (voiceError && voicePrompt !== 'review')) && (
         <p className="form-error">{error ?? voiceError}</p>
       )}
 
@@ -517,12 +516,18 @@ export function StudyChat({
             boardControls
               ? 'Escribe tu duda… “Enviar pizarra” para que mire tu dibujo; “IA dibuja” para que ella dibuje el ejercicio.'
               : voiceEnabled
-                ? 'Escribe tu duda… o, si quieres contar mucho, usa “Hablar del tema”.'
+                ? 'Cuéntale al tutor lo de tu tema. Puedes grabar varias veces, sumarlo aquí y enviar cuando esté listo.'
                 : 'Escribe tu duda o lo que acabas de entender…'
           }
           rows={3}
           disabled={sending || voiceBusy}
         />
+        {voiceEnabled && (
+          <p className="muted study-voice-compose-hint">
+            El tutor quiere conocer tu tema. Puedes grabar varias veces, sumar las palabras aquí y
+            enviar cuando esté listo.
+          </p>
+        )}
         <div className="study-chat-send-row">
           {boardControls && onToggleBoardView ? (
             <button
@@ -573,8 +578,8 @@ export function StudyChat({
       <KidAskDialog
         open={voicePrompt === 'intro'}
         titleId="study-voice-intro-title"
-        title="¿Vas a explicar bastante?"
-        primaryLabel="Voy a explicar"
+        title="¿Quieres contarle tu tema?"
+        primaryLabel="Voy a hablar"
         secondaryLabel="Mejor escribo"
         onPrimary={() => {
           setVoicePrompt(null)
@@ -583,24 +588,32 @@ export function StudyChat({
         onSecondary={() => setVoicePrompt(null)}
       >
         <p>
-          El micrófono es para contar el tema con tus palabras, como si se lo explicaras a un
-          amigo. Si solo quieres decir una frase cortita, mejor escríbela: así se entiende más
-          fácil.
+          El tutor quiere conocer tu tema con tus palabras. Puedes hablar un rato, revisar lo que
+          se escribió y sumarlo abajo. Si no te alcanza, graba otra vez. Cuando esté todo, envíaselo
+          con el botón de abajo.
         </p>
       </KidAskDialog>
 
       <KidAskDialog
-        open={voicePrompt === 'confirm'}
-        titleId="study-voice-confirm-title"
-        title="¿Se lo mandamos al tutor?"
-        primaryLabel="Sí, mandarlo"
+        open={voicePrompt === 'review'}
+        titleId="study-voice-review-title"
+        title="¿Así se escuchó?"
+        primaryLabel="Sumarlo abajo"
         secondaryLabel="Grabar otra vez"
-        busy={sending}
-        onPrimary={() => void sendPendingVoice()}
+        tertiaryLabel="Ahora no"
+        primaryDisabled={!pendingVoiceText.trim()}
+        onPrimary={addPendingVoiceToDraft}
         onSecondary={redoVoice}
+        onTertiary={dismissVoiceReview}
       >
-        <p>Así se escuchó lo que dijiste:</p>
-        <p className="study-voice-transcript">{pendingVoiceText || draft}</p>
+        <p>Revísalo y, si hace falta, corrígelo. Luego súmalo a la caja de abajo.</p>
+        <textarea
+          className="study-voice-transcript-input"
+          value={pendingVoiceText}
+          onChange={(e) => setPendingVoiceText(e.target.value)}
+          rows={6}
+          aria-label="Lo que se escuchó"
+        />
         {voiceError && <p className="form-error">{voiceError}</p>}
       </KidAskDialog>
     </section>
@@ -614,9 +627,12 @@ function KidAskDialog({
   children,
   primaryLabel,
   secondaryLabel,
+  tertiaryLabel,
   onPrimary,
   onSecondary,
+  onTertiary,
   busy = false,
+  primaryDisabled = false,
 }: {
   open: boolean
   titleId: string
@@ -624,9 +640,12 @@ function KidAskDialog({
   children: ReactNode
   primaryLabel: string
   secondaryLabel: string
+  tertiaryLabel?: string
   onPrimary: () => void
   onSecondary: () => void
+  onTertiary?: () => void
   busy?: boolean
+  primaryDisabled?: boolean
 }) {
   return (
     <AnimatePresence>
@@ -654,10 +673,20 @@ function KidAskDialog({
             </div>
             <div className="modal-panel-body study-kid-dialog-body">{children}</div>
             <div className="modal-actions">
+              {tertiaryLabel && onTertiary ? (
+                <button type="button" className="ghost" onClick={onTertiary} disabled={busy}>
+                  {tertiaryLabel}
+                </button>
+              ) : null}
               <button type="button" className="ghost" onClick={onSecondary} disabled={busy}>
                 {secondaryLabel}
               </button>
-              <button type="button" className="primary" onClick={onPrimary} disabled={busy}>
+              <button
+                type="button"
+                className="primary"
+                onClick={onPrimary}
+                disabled={busy || primaryDisabled}
+              >
                 {primaryLabel}
               </button>
             </div>

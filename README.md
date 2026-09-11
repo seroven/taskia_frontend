@@ -13,7 +13,7 @@ La API vive en `[taskia_backend](../taskia_backend)`. Este paquete solo habla co
 - Iniciar sesión. No hay registro público: las cuentas las crea un adulto.
 - **Tablero kanban** de tareas (Pendiente, En proceso, En estudio, Terminado), con arrastrar y soltar, filtros y candado de estudio en dificultades altas.
 - Crear y editar tareas (curso, dificultad, tipo diaria/proyecto, vencimiento, pizarra opcional).
-- **Modo estudio** de una tarea: chat con el tutor (Gemini), fases de comprensión / práctica / repaso, voz a texto y pizarra Excalidraw si la tarea la usa.
+- **Modo estudio** de una tarea: chat con el tutor (Gemini), fases de comprensión / práctica / repaso, voz a texto (revisar y sumar a la caja, sin enviar de frente) y pizarra Excalidraw si la tarea la usa.
 - **Mundos**: crear mundos, agregar cursos, crear o importar misiones, estudiar un tema y lanzar desafíos (mundo, curso o misión).
 - Tema claro/oscuro y color de acento.
 
