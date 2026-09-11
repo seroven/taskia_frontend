@@ -7,7 +7,7 @@ import {
 } from '@phosphor-icons/react'
 import { api } from '../../api'
 import { AppLoader } from '../../components/AppLoader'
-import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
+import { GridBoard, type GridBoardHandle } from '../../components/study/GridBoard'
 import { StudyBoardPane } from '../../components/study/StudyBoardPane'
 import { StudyBoardToggle } from '../../components/study/StudyBoardToggle'
 import { StudyChat } from '../../components/study/StudyChat'
@@ -44,7 +44,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
   const [togglingBoard, setTogglingBoard] = useState<'on' | 'off' | null>(null)
   const [boardOpen, setBoardOpen] = useState(false)
   const [threadEl, setThreadEl] = useState<HTMLDivElement | null>(null)
-  const boardRef = useRef<ExcalidrawBoardHandle>(null)
+  const boardRef = useRef<GridBoardHandle>(null)
   const saveBoardRef = useRef<(scene: StudyBoardScene) => void>(() => {})
 
   useEffect(() => {
@@ -368,7 +368,7 @@ export function MissionStudyPage({ missionId, onBack }: Props) {
                 portalParent={threadEl}
               >
                 {boardReady && (
-                  <ExcalidrawBoard
+                  <GridBoard
                     key={`mission-board-${mission.id}-${theme}-${mission.uses_board}`}
                     ref={boardRef}
                     initialBoard={board}

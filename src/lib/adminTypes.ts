@@ -192,12 +192,17 @@ export interface AdminUsageStudent {
   calls: number
   tokens: number
   estimated_usd: number
+  usd_tutor: number
+  usd_challenges: number
+  usd_voice: number
 }
 
 export interface AdminUsageKind {
   kind: string
   label: string
   calls: number
+  tokens: number
+  estimated_usd: number
 }
 
 export interface AdminUsage {

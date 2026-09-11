@@ -37,6 +37,12 @@ function formatUsd(value: number) {
   return `$${value.toFixed(2)}`
 }
 
+function rowMatchesKind(value: string, kind: string) {
+  if (value === kind) return true
+  if (kind === 'tutor') return value === 'messages' || value === 'Mensajes'
+  return false
+}
+
 function useChartColors() {
   const { theme } = useTheme()
   const { accent } = useAccent()
@@ -100,7 +106,8 @@ function ChartTooltip({
         </p>
       )}
       {payload.map((item) => {
-        const isUsd = String(item.dataKey) === 'estimated_usd'
+        const key = String(item.dataKey ?? '')
+        const isUsd = key === 'estimated_usd' || key.startsWith('usd_')
         const raw = Number(item.value ?? 0)
         return (
           <p key={String(item.dataKey ?? item.name)} style={{ color: item.color ?? colors.ink }}>
@@ -205,24 +212,41 @@ export function AdminDashboardCharts({
       [...(usage?.by_student ?? [])]
         .filter((row) => row.calls > 0 || row.estimated_usd > 0)
         .slice(0, MAX_BARS)
-        .map((row) => ({
-          ...row,
-          name: shortName(row.username),
-          fullName: row.username,
-        })),
+        .map((row) => {
+          const usdTutor = row.usd_tutor ?? 0
+          const usdChallenges = row.usd_challenges ?? 0
+          const usdVoice = row.usd_voice ?? 0
+          const split = usdTutor + usdChallenges + usdVoice
+          return {
+            ...row,
+            name: shortName(row.username),
+            fullName: row.username,
+            usd_tutor: split > 0 ? usdTutor : row.estimated_usd ?? 0,
+            usd_challenges: split > 0 ? usdChallenges : 0,
+            usd_voice: split > 0 ? usdVoice : 0,
+          }
+        }),
     [usage],
   )
   const kindRows = useMemo(() => {
     const rows = usage?.by_kind ?? []
     return [
-      { kind: 'tutor', label: 'Tutor' },
+      { kind: 'tutor', label: 'Mensajes' },
       { kind: 'challenges', label: 'Desafíos' },
       { kind: 'voice', label: 'Transcripciones' },
-    ].map((item) => ({
-      ...item,
-      calls: rows.find((row) => row.kind === item.kind)?.calls ?? 0,
-    }))
+    ].map((item) => {
+      const row = rows.find((entry) => rowMatchesKind(entry.kind, item.kind))
+      return {
+        ...item,
+        label: row?.label || item.label,
+        calls: row?.calls ?? 0,
+        tokens: row?.tokens ?? 0,
+        estimated_usd: row?.estimated_usd ?? 0,
+      }
+    })
   }, [usage])
+  const hasKindSpend = kindRows.some((row) => row.estimated_usd > 0)
+  const hasKindCalls = kindRows.some((row) => row.calls > 0)
   const kindFill = (kind: string) => {
     if (kind === 'voice') return colors.voice
     if (kind === 'challenges') return colors.danger
@@ -340,12 +364,11 @@ export function AdminDashboardCharts({
         <div className="admin-section-head">
           <h2>Uso de Gemini</h2>
           <p className="muted">
-            {usage?.measured
-              ? 'Llamadas reales registradas'
-              : 'Estimado por respuestas del tutor y desafíos'}
+            Llamadas a Gemini por día, no el gasto.
             {usage
-              ? ` · ${usage.totals.calls} llamadas · ${formatUsd(usage.totals.estimated_usd)}`
-              : ''}
+              ? ` ${usage.totals.calls} llamadas · ${formatUsd(usage.totals.estimated_usd)}.`
+              : ''}{' '}
+            Desafíos suma generar, pizarra del enunciado y corrección.
           </p>
         </div>
         {hasUsageCalls ? (
@@ -372,7 +395,7 @@ export function AdminDashboardCharts({
                 <Area
                   type="monotone"
                   dataKey="tutor"
-                  name="Tutor"
+                  name="Mensajes"
                   stroke={colors.studying}
                   fill={colors.studying}
                   fillOpacity={0.16}
@@ -411,9 +434,101 @@ export function AdminDashboardCharts({
 
       <section className="admin-panel">
         <div className="admin-section-head">
-          <h2>Costo estimado</h2>
+          <h2>Consumo por tipo</h2>
           <p className="muted">
-            Gemini Flash · {usage?.measured ? 'tokens medidos' : 'aprox. por acción'}
+            Gasto estimado en Gemini. Desafíos agrupa generar, pizarra del enunciado y
+            corrección. Un mensaje de chat es una llamada; si fue por voz suma también la
+            transcripción.
+          </p>
+        </div>
+        {hasKindSpend ? (
+          <div className="admin-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={kindRows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <CartesianGrid stroke={colors.line} strokeDasharray="4 4" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: colors.muted, fontSize: 12, fontWeight: 800 }}
+                  axisLine={{ stroke: colors.line }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: colors.muted, fontSize: 12, fontWeight: 700 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={56}
+                  tickFormatter={(value: number) => formatUsd(Number(value))}
+                />
+                <Tooltip content={tooltip} {...tooltipUi} />
+                <Bar dataKey="estimated_usd" name="Gasto" radius={[8, 8, 0, 0]}>
+                  {kindRows.map((row) => (
+                    <Cell key={row.kind} fill={kindFill(row.kind)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyState
+            compact
+            icon={CurrencyDollar}
+            title="Sin gasto"
+            description="No hay consumo de Gemini en este período."
+          />
+        )}
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-section-head">
+          <h2>Llamadas por tipo</h2>
+          <p className="muted">
+            Cantidad de peticiones a Gemini, no el costo. Desafíos puede ser más de una
+            llamada por intento (generar + enunciado + corregir).
+          </p>
+        </div>
+        {hasKindCalls ? (
+          <div className="admin-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={kindRows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke={colors.line} strokeDasharray="4 4" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: colors.muted, fontSize: 12, fontWeight: 800 }}
+                  axisLine={{ stroke: colors.line }}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fill: colors.muted, fontSize: 12, fontWeight: 700 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={32}
+                />
+                <Tooltip content={tooltip} {...tooltipUi} />
+                <Bar dataKey="calls" name="Llamadas" radius={[8, 8, 0, 0]}>
+                  {kindRows.map((row) => (
+                    <Cell key={row.kind} fill={kindFill(row.kind)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyState
+            compact
+            icon={Lightning}
+            title="Sin llamadas"
+            description="Nadie usó Gemini en este período."
+          />
+        )}
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-section-head">
+          <h2>Costo por alumno</h2>
+          <p className="muted">
+            Gemini Flash · {usage?.measured ? 'tokens medidos' : 'aprox. por acción'} ·
+            apilado por tipo
           </p>
         </div>
         {costRows.length === 0 ? (
@@ -426,13 +541,14 @@ export function AdminDashboardCharts({
         ) : (
           <div
             className="admin-chart"
-            style={{ height: Math.max(240, costRows.length * 42 + 48) }}
+            style={{ height: Math.max(260, costRows.length * 48 + 72) }}
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={costRows}
                 layout="vertical"
                 margin={{ top: 4, right: 16, left: 4, bottom: 0 }}
+                barCategoryGap={10}
               >
                 <CartesianGrid stroke={colors.line} strokeDasharray="4 4" horizontal={false} />
                 <XAxis
@@ -457,10 +573,26 @@ export function AdminDashboardCharts({
                     return <ChartTooltip {...props} label={label ?? props.label} colors={colors} />
                   }}
                 />
+                <Legend wrapperStyle={{ fontWeight: 800, fontSize: 13 }} />
                 <Bar
-                  dataKey="estimated_usd"
-                  name="Costo"
-                  fill={colors.accent}
+                  dataKey="usd_tutor"
+                  name="Mensajes"
+                  stackId="cost"
+                  fill={colors.studying}
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="usd_challenges"
+                  name="Desafíos"
+                  stackId="cost"
+                  fill={colors.danger}
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="usd_voice"
+                  name="Transcripciones"
+                  stackId="cost"
+                  fill={colors.voice}
                   radius={[0, 6, 6, 0]}
                 />
               </BarChart>
@@ -472,6 +604,10 @@ export function AdminDashboardCharts({
       <section className="admin-panel">
         <div className="admin-section-head">
           <h2>Acciones por alumno</h2>
+          <p className="muted">
+            Lo que hizo el alumno, no el gasto: mensajes enviados, desafíos iniciados y
+            audios.
+          </p>
         </div>
         {actionRows.length === 0 && !hasChildActions && !hasUsageCalls ? (
           <EmptyState
@@ -525,20 +661,19 @@ export function AdminDashboardCharts({
                 <Legend wrapperStyle={{ fontWeight: 800, fontSize: 13 }} />
                 <Bar
                   dataKey="mensajes"
-                  name="Mensajes"
+                  name="Mensajes del alumno"
                   fill={colors.pending}
                   radius={[0, 6, 6, 0]}
                 />
-                <Bar dataKey="tutor" name="Tutor" fill={colors.studying} radius={[0, 6, 6, 0]} />
                 <Bar
                   dataKey="desafios"
-                  name="Desafíos"
+                  name="Desafíos iniciados"
                   fill={colors.danger}
                   radius={[0, 6, 6, 0]}
                 />
                 <Bar
                   dataKey="transcripciones"
-                  name="Transcripciones"
+                  name="Audios"
                   fill={colors.voice}
                   radius={[0, 6, 6, 0]}
                 />
@@ -546,38 +681,6 @@ export function AdminDashboardCharts({
             </ResponsiveContainer>
           </div>
         )}
-      </section>
-
-      <section className="admin-panel">
-        <div className="admin-section-head">
-          <h2>Llamadas por tipo</h2>
-        </div>
-        <div className="admin-chart">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={kindRows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke={colors.line} strokeDasharray="4 4" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: colors.muted, fontSize: 12, fontWeight: 800 }}
-                axisLine={{ stroke: colors.line }}
-                tickLine={false}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{ fill: colors.muted, fontSize: 12, fontWeight: 700 }}
-                axisLine={false}
-                tickLine={false}
-                width={32}
-              />
-              <Tooltip content={tooltip} {...tooltipUi} />
-              <Bar dataKey="calls" name="Llamadas" radius={[8, 8, 0, 0]}>
-                {kindRows.map((row) => (
-                  <Cell key={row.kind} fill={kindFill(row.kind)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </section>
 
       {showByStudent && (

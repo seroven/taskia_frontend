@@ -2410,8 +2410,203 @@ input[type='checkbox']:active:not(:disabled) {
   inset: 0;
 }
 
-.study-board-wrap .excalidraw {
-  --color-primary: var(--accent);
+.grid-board {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #ffffff;
+  color: #111827;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.grid-board.is-dark {
+  background: #0b0f14;
+  color: #f3f4f6;
+}
+
+.grid-board-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  flex-shrink: 0;
+}
+
+.grid-board-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.grid-board-tool.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.grid-board-tool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.grid-board-sep {
+  width: 1px;
+  height: 22px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.grid-board-color {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: var(--swatch);
+  cursor: pointer;
+  padding: 0;
+}
+
+.grid-board-color.is-on {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.grid-board-color[data-color='white'] {
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.grid-board-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #93c5fd 18%, transparent), transparent 40%),
+    #f8fafc;
+}
+
+.grid-board.is-dark .grid-board-stage {
+  background: #111827;
+}
+
+.grid-board-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.grid-board-svg text {
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.grid-board-svg.is-pan {
+  cursor: grab;
+}
+
+.grid-board-svg.is-pan.is-panning,
+.grid-board-svg.is-panning {
+  cursor: grabbing;
+}
+
+.grid-board-svg.is-select {
+  cursor: default;
+}
+
+.grid-board-svg.is-draw {
+  cursor: crosshair;
+}
+
+.grid-board-paper {
+  fill: #ffffff;
+}
+
+.grid-board.is-dark .grid-board-paper {
+  fill: #1f2937;
+}
+
+.grid-board-line {
+  stroke: color-mix(in srgb, #64748b 28%, transparent);
+  stroke-width: 1;
+}
+
+.grid-board-handle {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 1;
+  cursor: nwse-resize;
+}
+
+.grid-board-text-edit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  font-size: 16px;
+}
+
+.grid-board-caret-cell {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.grid-board-caret {
+  fill: var(--accent);
+  animation: grid-board-caret-blink 1s steps(1) infinite;
+}
+
+.grid-board-marquee {
+  fill: color-mix(in srgb, var(--accent) 16%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+@keyframes grid-board-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.grid-board-hint {
+  margin: 0;
+  padding: 6px 10px 8px;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.challenge-board > .grid-board,
+.study-board-canvas > .grid-board {
+  position: absolute;
+  inset: 0;
 }
 
 .study-board-mobile-bar {

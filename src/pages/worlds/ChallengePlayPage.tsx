@@ -8,14 +8,14 @@ import {
 import { api } from '../../api'
 import { AppLoader } from '../../components/AppLoader'
 import { EmptyState } from '../../components/EmptyState'
-import { ExcalidrawBoard, type ExcalidrawBoardHandle } from '../../components/study/ExcalidrawBoard'
+import { GridBoard, type GridBoardHandle } from '../../components/study/GridBoard'
 import { ChallengeReviewAnswersList } from '../../components/worlds/ChallengeReviewAnswersList'
 import { WorldsHero } from '../../components/worlds/WorldsHero'
 import { WorldsNav } from '../../components/worlds/WorldsNav'
 import { challengeDifficultyIcon } from '../../components/worlds/worldsIcons'
 import { errorMessage } from '../../lib/errors'
 import { parseDrawOps, type StudyBoardScene } from '../../lib/studyProtocol'
-import { promptOpsToScene } from '../../lib/drawOpsToExcalidraw'
+import { emptyGridScene, hasStudentWork, normalizeScene, promptOpsToScene } from '../../lib/gridBoardModel'
 import {
   DIFFICULTY_LABEL,
   type ChallengeAnswerPayload,
@@ -37,40 +37,18 @@ function reviewCheer(correct: number, total: number) {
   return '¡Seguí practicando!'
 }
 
-const EMPTY_BOARD: StudyBoardScene = {
-  type: 'excalidraw',
-  version: 2,
-  source: 'taskia',
-  elements: [],
-  appState: { viewBackgroundColor: '#ffffff' },
-  files: {},
-}
+const EMPTY_BOARD: StudyBoardScene = emptyGridScene()
 
 function asBoardScene(raw: unknown): StudyBoardScene {
-  if (raw && typeof raw === 'object' && 'elements' in raw) {
-    return raw as StudyBoardScene
-  }
-  return EMPTY_BOARD
+  return normalizeScene(raw)
+}
+
+function hasUserBoardWork(scene: StudyBoardScene | null | undefined) {
+  return hasStudentWork(scene)
 }
 
 function isBoardQuestion(q: Pick<ChallengeQuestionPublic, 'kind' | 'requires_board'>) {
   return q.kind === 'board_prompt' || q.requires_board
-}
-
-function hasUserBoardWork(scene: StudyBoardScene | null | undefined) {
-  const elements = Array.isArray(scene?.elements) ? scene.elements : []
-  return elements.some((el) => {
-    if (!el || typeof el !== 'object') return false
-    const rec = el as Record<string, unknown>
-    if (rec.isDeleted) return false
-    const data = rec.customData
-    if (data && typeof data === 'object') {
-      const layer = String((data as { layer?: string }).layer ?? '')
-      const role = String((data as { role?: string }).role ?? '')
-      if (layer === 'ai' || role === 'prompt') return false
-    }
-    return true
-  })
 }
 
 function promptSceneFor(q: ChallengeQuestionPublic): StudyBoardScene {
@@ -91,7 +69,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   const [cursor, setCursor] = useState(0)
   const [pending, setPending] = useState<Record<number, ChallengeAnswerPayload>>({})
   const [showResult, setShowResult] = useState(false)
-  const boardRef = useRef<ExcalidrawBoardHandle>(null)
+  const boardRef = useRef<GridBoardHandle>(null)
   const abandonedRef = useRef(false)
 
   const isCompleted =
@@ -187,7 +165,6 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
         user_answer: note || '(respuesta en pizarra)',
         board_json: boardJson,
         board_description: attach?.description,
-        board_image_base64: attach?.imageBase64 ?? undefined,
       }
     }
     if (!answer.trim()) return pending[current.id] ?? null
@@ -212,7 +189,6 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
       let userAnswer = answer.trim()
       let boardJson: StudyBoardScene | null = null
       let boardDescription: string | undefined
-      let boardImage: string | undefined
 
       if (
         current.kind === 'multiple_choice' &&
@@ -235,7 +211,6 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
         }
         userAnswer = userAnswer || '(respuesta en pizarra)'
         boardDescription = attach?.description
-        boardImage = attach?.imageBase64 ?? undefined
       } else if (!userAnswer) {
         setError('Escribe tu respuesta')
         setSubmitting(false)
@@ -249,7 +224,6 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
           user_answer: userAnswer,
           board_json: boardJson,
           board_description: boardDescription,
-          board_image_base64: boardImage,
         },
       }
       setPending(nextPending)
@@ -567,7 +541,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
 
           {isBoardQuestion(current) && (
             <div className="challenge-board">
-              <ExcalidrawBoard
+              <GridBoard
                 key={`challenge-q-${current.id}-${theme}`}
                 ref={boardRef}
                 initialBoard={currentBoard}

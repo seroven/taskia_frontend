@@ -38,7 +38,7 @@ export interface Task {
   board_order: number
   /** True si la IA confirmó que el niño dominó la tarea (candado Alta). */
   study_passed: boolean
-  /** Si true, el modo estudio muestra Excalidraw. */
+  /** Si true, el modo estudio muestra la pizarra cuadriculada. */
   uses_board: boolean
   /** Si true, ya eligió charla vs pizarra (no repetir el modal). */
   study_mode_chosen: boolean
